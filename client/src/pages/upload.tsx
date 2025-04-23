@@ -1,15 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { apiRequest } from '@lib/queryClient';
-import { Button } from '@components/ui/button';
-import { Input } from '@components/ui/input';
-import { Textarea } from '@components/ui/textarea';
-import { Label } from '@components/ui/label';
-import { useToast } from '@hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import {
   Select,
@@ -17,7 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@components/ui/select';
+} from '@/components/ui/select';
 import {
   Card,
   CardContent,
@@ -25,7 +25,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@components/ui/card';
+} from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -34,13 +34,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@components/ui/form';
+} from '@/components/ui/form';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@components/ui/tooltip';
+} from '@/components/ui/tooltip';
 
 // Form validation schema
 const uploadSchema = z.object({
@@ -58,7 +58,7 @@ type UploadFormValues = z.infer<typeof uploadSchema>;
 
 export default function UploadPage() {
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isCalculatingDuration, setIsCalculatingDuration] = useState(false);
@@ -66,13 +66,13 @@ export default function UploadPage() {
   const [previewURL, setPreviewURL] = useState<string | null>(null);
 
   // Fetch categories
-  const { data: categories } = useQuery({
+  const { data: categories = [] } = useQuery<any[]>({
     queryKey: ['/api/categories'],
     retry: 1,
   });
 
   // Fetch tags
-  const { data: tags } = useQuery({
+  const { data: tags = [] } = useQuery<any[]>({
     queryKey: ['/api/tags'],
     retry: 1,
   });
@@ -130,7 +130,7 @@ export default function UploadPage() {
       return await apiRequest('/api/uploads/audio', {
         method: 'POST',
         body: data,
-      });
+      } as RequestInit);
     },
     onSuccess: () => {
       // Invalidate and refetch
@@ -143,7 +143,7 @@ export default function UploadPage() {
       });
       
       // Redirect to home page
-      navigate('/');
+      setLocation('/');
     },
     onError: (error: any) => {
       toast({
@@ -353,7 +353,7 @@ export default function UploadPage() {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => navigate('/')}
+                  onClick={() => setLocation('/')}
                 >
                   Cancel
                 </Button>

@@ -16,6 +16,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/category/:id" component={CategoryPage} />
       <Route path="/login" component={Auth} />
+      <Route path="/upload" component={UploadPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

@@ -8,17 +8,39 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
+  options?: RequestInit,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  // Default options
+  const defaultOptions: RequestInit = {
+    method: 'GET',
+    credentials: 'include',
+  };
 
+  // Merge options with defaults
+  const mergedOptions = { ...defaultOptions, ...options };
+  
+  // Handle JSON data (if not FormData)
+  if (mergedOptions.body && !(mergedOptions.body instanceof FormData)) {
+    mergedOptions.headers = {
+      ...mergedOptions.headers,
+      'Content-Type': 'application/json',
+    };
+    
+    if (typeof mergedOptions.body !== 'string') {
+      mergedOptions.body = JSON.stringify(mergedOptions.body);
+    }
+  }
+  
+  // Don't set Content-Type for FormData - browser will set it with boundary
+  if (mergedOptions.body instanceof FormData && mergedOptions.headers) {
+    const headers = mergedOptions.headers as Record<string, string>;
+    if (headers['Content-Type']) {
+      delete headers['Content-Type'];
+    }
+  }
+
+  const res = await fetch(url, mergedOptions);
   await throwIfResNotOk(res);
   return res;
 }
