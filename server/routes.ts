@@ -165,9 +165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return done(null, false, { message: "Incorrect username." });
         }
 
-        // In a real app, we would use bcrypt.compare, but for simplicity
-        // we're doing a direct comparison since our storage doesn't hash passwords
-        if (user.password !== password) {
+        // Use bcrypt to compare passwords (hashed during database initialization)
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
           return done(null, false, { message: "Incorrect password." });
         }
 
@@ -202,8 +202,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ message: "Username already exists" });
       }
       
-      // Create new user
-      const user = await storage.createUser(data);
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(data.password, 10);
+      
+      // Create new user with hashed password
+      const user = await storage.createUser({
+        ...data,
+        password: hashedPassword
+      });
       
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
@@ -214,6 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const validationError = fromZodError(error);
         res.status(400).json({ message: validationError.message });
       } else {
+        console.error("Error registering user:", error);
         res.status(500).json({ message: "Internal server error" });
       }
     }

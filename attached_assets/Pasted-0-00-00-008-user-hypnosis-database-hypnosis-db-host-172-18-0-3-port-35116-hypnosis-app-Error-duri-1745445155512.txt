@@ -1,0 +1,79 @@
+0:00:00.008 user=hypnosis database=hypnosis_db host=172.18.0.3 port=35116
+hypnosis-app  | Error during database initialization: error: relation "users" does not exist
+hypnosis-app  |     at /app/node_modules/pg-pool/index.js:45:11
+hypnosis-app  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+hypnosis-app  |     at async <anonymous> (/app/node_modules/src/node-postgres/session.ts:104:19)
+hypnosis-app  |     at async DatabaseStorage.initializeDatabase (/app/server/storage.ts:658:29) {
+hypnosis-app  |   length: 104,
+hypnosis-app  |   severity: 'ERROR',
+hypnosis-app  |   code: '42P01',
+hypnosis-app  |   detail: undefined,
+hypnosis-app  |   hint: undefined,
+hypnosis-app  |   position: '86',
+hypnosis-db   | 2025-04-23 21:51:30.121 UTC [72] ERROR:  relation "users" does not exist at character 86
+hypnosis-app  |   internalPosition: undefined,
+hypnosis-db   | 2025-04-23 21:51:30.121 UTC [72] STATEMENT:  select "id", "username", "password", "full_name", "email", "role", "created_at" from "users" limit $1
+hypnosis-app  |   internalQuery: undefined,
+hypnosis-db   | 2025-04-23 21:51:30.121 UTC [72] LOG:  disconnection: session time: 0:00:00.014 user=hypnosis database=hypnosis_db host=172.18.0.3 port=35126
+hypnosis-app  |   where: undefined,
+hypnosis-db   | 2025-04-23 21:51:30.122 UTC [73] LOG:  connection received: host=172.18.0.3 port=35140
+hypnosis-app  |   schema: undefined,
+hypnosis-app  |   table: undefined,
+hypnosis-app  |   column: undefined,
+hypnosis-app  |   dataType: undefined,
+hypnosis-app  |   constraint: undefined,
+hypnosis-app  |   file: 'parse_relation.c',
+hypnosis-db   | 2025-04-23 21:51:30.124 UTC [73] LOG:  connection authenticated: identity="hypnosis" method=scram-sha-256 (/var/lib/postgresql/data/pg_hba.conf:100)
+hypnosis-app  |   line: '1381',
+hypnosis-db   | 2025-04-23 21:51:30.124 UTC [73] LOG:  connection authorized: user=hypnosis database=hypnosis_db
+hypnosis-app  |   routine: 'parserOpenTable'
+hypnosis-app  | }
+hypnosis-app  | ✅ Connected to PostgreSQL: PostgreSQL 14.17 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+hypnosis-app  | ✅ Successfully connected to the PostgreSQL database
+hypnosis-app  | Starting database initialization...
+hypnosis-app  | Creating database schema...
+hypnosis-app  | Creating tables from schema definitions...
+hypnosis-app  | Database schema created successfully
+hypnosis-app  | Seeding initial data...
+hypnosis-app  | Created admin user: admin
+hypnosis-app  | Created 4 categories
+hypnosis-app  | Created 8 tags
+hypnosis-app  | Created 3 audio tracks
+hypnosis-db   | 2025-04-23 21:51:30.307 UTC [74] LOG:  connection received: host=172.18.0.3 port=35150
+hypnosis-db   | 2025-04-23 21:51:30.309 UTC [74] LOG:  connection authenticated: identity="hypnosis" method=scram-sha-256 (/var/lib/postgresql/data/pg_hba.conf:100)
+hypnosis-db   | 2025-04-23 21:51:30.309 UTC [74] LOG:  connection authorized: user=hypnosis database=hypnosis_db
+hypnosis-app  | Updated category 'Relaxation' with count: 1
+hypnosis-app  | Updated category 'Confidence' with count: 1
+hypnosis-app  | Updated category 'Sleep' with count: 1
+hypnosis-app  | Updated category 'Stress Relief' with count: 0
+hypnosis-app  | Database initialization completed successfully!
+hypnosis-app  | ✅ Database initialization completed successfully
+hypnosis-app  | 9:51:30 PM [express] serving on port 5000
+hypnosis-app  | Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+hypnosis-app  |   npx update-browserslist-db@latest
+hypnosis-app  |   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+hypnosis-app  | 9:51:32 PM [express] GET /api/auth/user 401 in 2ms :: {"message":"Not authenticated"}
+hypnosis-db   | 2025-04-23 21:51:38.841 UTC [81] LOG:  connection received: host=[local]
+hypnosis-db   | 2025-04-23 21:51:38.841 UTC [81] LOG:  connection authorized: user=hypnosis database=hypnosis application_name=pg_isready
+hypnosis-db   | 2025-04-23 21:51:38.842 UTC [81] FATAL:  database "hypnosis" does not exist
+hypnosis-db   | 2025-04-23 21:51:40.317 UTC [74] LOG:  disconnection: session time: 0:00:10.010 user=hypnosis database=hypnosis_db host=172.18.0.3 port=35150
+hypnosis-db   | 2025-04-23 21:51:40.317 UTC [73] LOG:  disconnection: session time: 0:00:10.195 user=hypnosis database=hypnosis_db host=172.18.0.3 port=35140
+hypnosis-app  | Login attempt: admin
+hypnosis-db   | 2025-04-23 21:51:48.708 UTC [82] LOG:  connection received: host=172.18.0.3 port=58350
+hypnosis-db   | 2025-04-23 21:51:48.711 UTC [82] LOG:  connection authenticated: identity="hypnosis" method=scram-sha-256 (/var/lib/postgresql/data/pg_hba.conf:100)
+hypnosis-db   | 2025-04-23 21:51:48.711 UTC [82] LOG:  connection authorized: user=hypnosis database=hypnosis_db
+hypnosis-app  | Login failed: Incorrect password.
+hypnosis-app  | 9:51:48 PM [express] POST /api/auth/login 401 in 8ms :: {"message":"Incorrect password."}
+hypnosis-db   | 2025-04-23 21:51:48.881 UTC [89] LOG:  connection received: host=[local]
+hypnosis-db   | 2025-04-23 21:51:48.881 UTC [89] LOG:  connection authorized: user=hypnosis database=hypnosis application_name=pg_isready
+hypnosis-db   | 2025-04-23 21:51:48.882 UTC [89] FATAL:  database "hypnosis" does not exist
+hypnosis-db   | 2025-04-23 21:51:58.713 UTC [82] LOG:  disconnection: session time: 0:00:10.004 user=hypnosis database=hypnosis_db host=172.18.0.3 port=58350
+hypnosis-db   | 2025-04-23 21:51:58.915 UTC [96] LOG:  connection received: host=[local]
+hypnosis-db   | 2025-04-23 21:51:58.915 UTC [96] LOG:  connection authorized: user=hypnosis database=hypnosis application_name=pg_isready
+hypnosis-db   | 2025-04-23 21:51:58.915 UTC [96] FATAL:  database "hypnosis" does not exist
+hypnosis-db   | 2025-04-23 21:52:08.948 UTC [103] LOG:  connection received: host=[local]
+hypnosis-db   | 2025-04-23 21:52:08.948 UTC [103] LOG:  connection authorized: user=hypnosis database=hypnosis application_name=pg_isready
+hypnosis-db   | 2025-04-23 21:52:08.948 UTC [103] FATAL:  database "hypnosis" does not exist
+hypnosis-db   | 2025-04-23 21:52:18.983 UTC [110] LOG:  connection received: host=[local]
+hypnosis-db   | 2025-04-23 21:52:18.983 UTC [110] LOG:  connection authorized: user=hypnosis database=hypnosis application_name=pg_isready
+hypnosis-db   | 2025-04-23 21:52:18.983 UTC [110] FATAL:  database "hypnosis" does not exist
