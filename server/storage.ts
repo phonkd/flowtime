@@ -22,6 +22,11 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  resetUserPassword(userId: number, newPassword: string): Promise<User | undefined>;
+  
+  // Admin user operations
+  getAllUsers(): Promise<User[]>;
+  updateUser(id: number, userData: { role: string }): Promise<User | undefined>;
   
   // Category operations
   getAllCategories(): Promise<CategoryWithCount[]>;
@@ -29,12 +34,16 @@ export interface IStorage {
   getCategoryByName(name: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategoryCount(id: number, count: number): Promise<Category>;
+  updateCategory(id: number, categoryData: Partial<Category>): Promise<Category | undefined>;
+  deleteCategory(id: number): Promise<boolean>;
   
   // Tag operations
   getAllTags(): Promise<TagWithCount[]>;
   getTagById(id: number): Promise<Tag | undefined>;
   getTagByName(name: string): Promise<Tag | undefined>;
   createTag(tag: InsertTag): Promise<Tag>;
+  updateTag(id: number, tagData: Partial<Tag>): Promise<Tag | undefined>;
+  deleteTag(id: number): Promise<boolean>;
   
   // Audio track operations
   getAllAudioTracks(): Promise<AudioTrack[]>;
@@ -43,6 +52,8 @@ export interface IStorage {
   getAudioTracksByTag(tagId: number): Promise<AudioTrack[]>;
   searchAudioTracks(query: string): Promise<AudioTrack[]>;
   createAudioTrack(track: InsertAudioTrack): Promise<AudioTrack>;
+  updateAudioTrack(id: number, trackData: Partial<AudioTrack>): Promise<AudioTrack | undefined>;
+  deleteAudioTrack(id: number): Promise<boolean>;
   
   // Audio track tags operations
   getTagsForAudioTrack(audioTrackId: number): Promise<Tag[]>;
@@ -327,6 +338,19 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
   
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+  
+  async updateUser(id: number, userData: { role: string }): Promise<User | undefined> {
+    const user = await this.getUser(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...userData };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
   // Category operations
   async getAllCategories(): Promise<CategoryWithCount[]> {
     return Array.from(this.categories.values()) as CategoryWithCount[];
@@ -437,6 +461,29 @@ export class MemStorage implements IStorage {
     const track: AudioTrack = { ...insertTrack, id };
     this.audioTracks.set(id, track);
     return track;
+  }
+  
+  async updateAudioTrack(id: number, trackData: Partial<AudioTrack>): Promise<AudioTrack | undefined> {
+    const track = await this.getAudioTrackById(id);
+    if (!track) return undefined;
+    
+    const updatedTrack: AudioTrack = { ...track, ...trackData };
+    this.audioTracks.set(id, updatedTrack);
+    return updatedTrack;
+  }
+  
+  async deleteAudioTrack(id: number): Promise<boolean> {
+    const track = this.audioTracks.get(id);
+    if (!track) return false;
+    
+    this.audioTracks.delete(id);
+    
+    // Remove any audio track tags associated with this track
+    Array.from(this.audioTrackTags.entries())
+      .filter(([_, tag]) => tag.audioTrackId === id)
+      .forEach(([tagId, _]) => this.audioTrackTags.delete(tagId));
+    
+    return true;
   }
   
   // Audio track tags operations
@@ -745,6 +792,24 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
   
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+  
+  async updateUser(id: number, userData: { role: string }): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set(userData)
+        .where(eq(users.id, id))
+        .returning();
+      return user;
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return undefined;
+    }
+  }
+  
   async resetUserPassword(userId: number, newPassword: string): Promise<User | undefined> {
     try {
       const [user] = await db
@@ -878,6 +943,39 @@ export class DatabaseStorage implements IStorage {
     
     const [track] = await db.insert(audioTracks).values(trackData).returning();
     return track;
+  }
+  
+  async updateAudioTrack(id: number, trackData: Partial<AudioTrack>): Promise<AudioTrack | undefined> {
+    try {
+      const [track] = await db
+        .update(audioTracks)
+        .set(trackData)
+        .where(eq(audioTracks.id, id))
+        .returning();
+      return track;
+    } catch (error) {
+      console.error("Error updating audio track:", error);
+      return undefined;
+    }
+  }
+  
+  async deleteAudioTrack(id: number): Promise<boolean> {
+    try {
+      // First delete any references in audioTrackTags
+      await db
+        .delete(audioTrackTags)
+        .where(eq(audioTrackTags.audioTrackId, id));
+      
+      // Then delete the track
+      await db
+        .delete(audioTracks)
+        .where(eq(audioTracks.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting audio track:", error);
+      return false;
+    }
   }
 
   // Audio track tags operations
