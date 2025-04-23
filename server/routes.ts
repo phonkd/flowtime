@@ -241,9 +241,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tracks", async (req: Request, res: Response) => {
     try {
       const userId = req.isAuthenticated() ? (req.user as any).id : undefined;
-      const tracks = await storage.getAllAudioTracksWithDetails(userId);
+      const isAdmin = req.isAuthenticated() && (req.user as any).role === 'admin';
+      
+      let tracks = await storage.getAllAudioTracksWithDetails(userId);
+      
+      // If not admin, filter to only show public tracks or tracks user has access to
+      if (!isAdmin) {
+        tracks = tracks.filter(track => {
+          // Include track if it's public
+          if (track.isPublic) return true;
+          
+          // Include track if user has explicit access (only possible for authenticated users)
+          if (userId) {
+            return storage.checkUserAccessToTrack(userId, track.id);
+          }
+          
+          // Otherwise exclude
+          return false;
+        });
+      }
+      
       res.status(200).json(tracks);
     } catch (error) {
+      console.error("Error fetching tracks:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -256,14 +276,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userId = req.isAuthenticated() ? (req.user as any).id : undefined;
+      const isAdmin = req.isAuthenticated() && (req.user as any).role === 'admin';
       const track = await storage.getAudioTrackWithDetails(id, userId);
       
       if (!track) {
         return res.status(404).json({ message: "Track not found" });
       }
       
+      // If not admin, check if track is public or user has access
+      if (!isAdmin) {
+        if (!track.isPublic && (!userId || !storage.checkUserAccessToTrack(userId, track.id))) {
+          return res.status(403).json({ message: "Access denied to this track" });
+        }
+      }
+      
       res.status(200).json(track);
     } catch (error) {
+      console.error("Error fetching track:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -276,10 +305,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userId = req.isAuthenticated() ? (req.user as any).id : undefined;
-      const tracks = await storage.getAudioTracksByCategoryWithDetails(categoryId, userId);
+      const isAdmin = req.isAuthenticated() && (req.user as any).role === 'admin';
+      let tracks = await storage.getAudioTracksByCategoryWithDetails(categoryId, userId);
+      
+      // If not admin, filter to only show public tracks or tracks user has access to
+      if (!isAdmin) {
+        tracks = tracks.filter(track => {
+          // Include track if it's public
+          if (track.isPublic) return true;
+          
+          // Include track if user has explicit access (only possible for authenticated users)
+          if (userId) {
+            return storage.checkUserAccessToTrack(userId, track.id);
+          }
+          
+          // Otherwise exclude
+          return false;
+        });
+      }
       
       res.status(200).json(tracks);
     } catch (error) {
+      console.error("Error fetching category tracks:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -295,15 +342,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add details to each track
       const userId = req.isAuthenticated() ? (req.user as any).id : undefined;
+      const isAdmin = req.isAuthenticated() && (req.user as any).role === 'admin';
+      
       const tracksWithDetails = await Promise.all(
         tracks.map(track => storage.getAudioTrackWithDetails(track.id, userId))
       );
       
       // Filter out undefined results
-      const filteredTracks = tracksWithDetails.filter(track => track !== undefined);
+      let filteredTracks = tracksWithDetails.filter(track => track !== undefined);
+      
+      // If not admin, filter to only show public tracks or tracks user has access to
+      if (!isAdmin) {
+        filteredTracks = filteredTracks.filter(track => {
+          // Include track if it's public
+          if (track.isPublic) return true;
+          
+          // Include track if user has explicit access (only possible for authenticated users)
+          if (userId) {
+            return storage.checkUserAccessToTrack(userId, track.id);
+          }
+          
+          // Otherwise exclude
+          return false;
+        });
+      }
       
       res.status(200).json(filteredTracks);
     } catch (error) {
+      console.error("Error searching tracks:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -395,7 +461,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         categoryId: categoryIdNum,
         audioUrl,
         imageUrl,
-        duration: durationNum
+        duration: durationNum,
+        isPublic: false // Make tracks private by default
       };
       
       const audioTrack = await storage.createAudioTrack(trackData);
