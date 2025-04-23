@@ -1186,46 +1186,67 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUsersWithAccessToTrack(audioTrackId: number): Promise<User[]> {
-    const accessRecords = await db
-      .select()
-      .from(userTrackAccess)
-      .where(eq(userTrackAccess.audioTrackId, audioTrackId));
-    
-    const userIds = accessRecords.map(r => r.userId);
-    
-    if (userIds.length === 0) {
+    try {
+      const accessRecords = await db
+        .select({
+          userId: userTrackAccess.userId,
+          audioTrackId: userTrackAccess.audioTrackId
+        })
+        .from(userTrackAccess)
+        .where(eq(userTrackAccess.audioTrackId, audioTrackId));
+      
+      const userIds = accessRecords.map(r => r.userId);
+      
+      if (userIds.length === 0) {
+        return [];
+      }
+      
+      return db.select().from(users).where(inArray(users.id, userIds));
+    } catch (error) {
+      console.error("Error in getUsersWithAccessToTrack:", error);
+      // Fallback approach if the query fails
       return [];
     }
-    
-    return db.select().from(users).where(inArray(users.id, userIds));
   }
   
   async checkUserAccessToTrack(userId: number, audioTrackId: number): Promise<boolean> {
-    // Check if user has explicit access to the track
-    const [access] = await db
-      .select()
-      .from(userTrackAccess)
-      .where(
-        and(
-          eq(userTrackAccess.userId, userId),
-          eq(userTrackAccess.audioTrackId, audioTrackId)
-        )
-      );
+    try {
+      // Check if user has explicit access to the track
+      const [access] = await db
+        .select({
+          userId: userTrackAccess.userId,
+          audioTrackId: userTrackAccess.audioTrackId
+        })
+        .from(userTrackAccess)
+        .where(
+          and(
+            eq(userTrackAccess.userId, userId),
+            eq(userTrackAccess.audioTrackId, audioTrackId)
+          )
+        );
+        
+      if (access) return true;
       
-    if (access) return true;
-    
-    // Check if the track is public
-    const [track] = await db
-      .select()
-      .from(audioTracks)
-      .where(
-        and(
-          eq(audioTracks.id, audioTrackId),
-          eq(audioTracks.isPublic, true)
-        )
-      );
-      
-    return !!track;
+      // Check if the track is public
+      const [track] = await db
+        .select({
+          id: audioTracks.id,
+          isPublic: audioTracks.isPublic
+        })
+        .from(audioTracks)
+        .where(
+          and(
+            eq(audioTracks.id, audioTrackId),
+            eq(audioTracks.isPublic, true)
+          )
+        );
+        
+      return !!track;
+    } catch (error) {
+      console.error("Error in checkUserAccessToTrack:", error);
+      // If there's an error, default to false (no access)
+      return false;
+    }
   }
   
   async getTracksByUser(userId: number): Promise<AudioTrack[]> {

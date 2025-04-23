@@ -1,0 +1,21 @@
+hypnosis-db   | 2025-04-23 20:09:38.545 UTC [130] LOG:  connection authorized: user=hypnosis database=hypnosis_db
+hypnosis-app  | 8:09:38 PM [express] GET /api/auth/user 200 in 2ms :: {"id":1,"username":"admin","fullName":"Admin U…
+hypnosis-app  | 8:09:38 PM [express] GET /api/categories 304 in 2ms :: [{"id":1,"name":"Relaxation","description":"P…
+hypnosis-app  | 8:09:39 PM [express] GET /api/admin/users 304 in 2ms :: [{"id":1,"username":"admin","fullName":"Admi…
+hypnosis-app  | 8:09:39 PM [express] GET /api/tracks 304 in 9ms :: [{"id":1,"title":"Deep Relaxation Journey","descr…
+hypnosis-db   | 2025-04-23 20:09:40.348 UTC [137] LOG:  connection received: host=[local]
+hypnosis-db   | 2025-04-23 20:09:40.348 UTC [137] LOG:  connection authorized: user=hypnosis database=hypnosis application_name=pg_isready
+hypnosis-db   | 2025-04-23 20:09:40.349 UTC [137] LOG:  disconnection: session time: 0:00:00.000 user=hypnosis database=hypnosis host=[local]
+hypnosis-db   | 2025-04-23 20:09:40.659 UTC [126] ERROR:  column "granted_by_id" does not exist at character 43
+hypnosis-db   | 2025-04-23 20:09:40.659 UTC [126] STATEMENT:  select "id", "user_id", "audio_track_id", "granted_by_id", "granted_at" from "user_track_access" where "user_track_access"."audio_track_id" = $1
+hypnosis-db   | 2025-04-23 20:09:40.659 UTC [126] LOG:  disconnection: session time: 0:00:02.134 user=hypnosis database=hypnosis_db host=172.18.0.3 port=39288
+hypnosis-app  | 8:09:40 PM [express] GET /api/track-access/6/users 500 in 2ms :: {"message":"Internal server error"}
+hypnosis-db   | 2025-04-23 20:09:48.534 UTC [125] LOG:  disconnection: session time: 0:00:10.035 user=hypnosis database=hypnosis_db host=172.18.0.3 port=39282
+hypnosis-db   | 2025-04-23 20:09:48.546 UTC [124] LOG:  disconnection: session time: 0:00:10.078 user=hypnosis database=hypnosis_db host=172.18.0.3 port=39272
+hypnosis-db   | 2025-04-23 20:09:48.558 UTC [128] LOG:  disconnection: session time: 0:00:10.027 user=hypnosis database=hypnosis_db host=172.18.0.3 port=39302
+hypnosis-db   | 2025-04-23 20:09:48.566 UTC [127] LOG:  disconnection: session time: 0:00:10.037 user=hypnosis database=hypnosis_db host=172.18.0.3 port=39300
+hypnosis-db   | 2025-04-23 20:09:48.566 UTC [129] LOG:  disconnection: session time: 0:00:10.035 user=hypnosis database=hypnosis_db host=172.18.0.3 port=39314
+hypnosis-db   | 2025-04-23 20:09:49.575 UTC [130] LOG:  disconnection: session time: 0:00:11.040 user=hypnosis database=hypnosis_db host=172.18.0.3 port=39316
+hypnosis-db   | 2025-04-23 20:09:50.381 UTC [144] LOG:  connection received: host=[local]
+hypnosis-db   | 2025-04-23 20:09:50.381 UTC [144] LOG:  connection authorized: user=hypnosis database=hypnosis application_name=pg_isready
+hypnosis-db   | 2025-04-23 20:09:50.382 UTC [144] LOG:  disconnection: session time: 0:00:00.000 user=hypnosis database=hypnosis host=[local]
