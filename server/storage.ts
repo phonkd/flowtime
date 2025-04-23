@@ -1017,11 +1017,11 @@ class MemTrackAccess {
 
   create(insertAccess: InsertUserTrackAccess): UserTrackAccess {
     const id = this.currentAccessId++;
-    const createdAt = new Date();
+    const grantedAt = new Date();
     const access: UserTrackAccess = {
       ...insertAccess,
       id,
-      createdAt
+      grantedAt
     };
     
     const key = `${insertAccess.userId}-${insertAccess.audioTrackId}`;
@@ -1046,6 +1046,12 @@ class MemTrackAccess {
   hasAccess(userId: number, audioTrackId: number): boolean {
     const key = `${userId}-${audioTrackId}`;
     return this.access.has(key);
+  }
+  
+  getTrackIdsForUser(userId: number): number[] {
+    return Array.from(this.access.values())
+      .filter(access => access.userId === userId)
+      .map(access => access.audioTrackId);
   }
 }
 
@@ -1158,6 +1164,12 @@ Object.assign(MemStorage.prototype, {
   checkUserAccessToTrack(userId, audioTrackId) {
     this.ensureInitialized();
     return this.trackAccess.hasAccess(userId, audioTrackId);
+  },
+  
+  getTracksByUser(userId) {
+    this.ensureInitialized();
+    const trackIds = this.trackAccess.getTrackIdsForUser(userId);
+    return Array.from(this.audioTracks.values()).filter(track => trackIds.includes(track.id));
   }
 });
 
