@@ -71,7 +71,14 @@ export interface IStorage {
   getTracksByUser(userId: number): Promise<AudioTrack[]>;
 }
 
+import createMemoryStore from 'memorystore';
+import session from 'express-session';
+
+const MemoryStore = createMemoryStore(session);
+
 export class MemStorage implements IStorage {
+  sessionStore: any;
+  
   private users: Map<number, User>;
   private categories: Map<number, Category>;
   private tags: Map<number, Tag>;
@@ -93,6 +100,11 @@ export class MemStorage implements IStorage {
     this.audioTracks = new Map();
     this.audioTrackTags = new Map();
     this.userProgress = new Map();
+    
+    // Initialize session store
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
     
     this.currentUserId = 1;
     this.currentCategoryId = 1;
@@ -943,4 +955,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
