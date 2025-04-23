@@ -9,6 +9,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Music, Menu, Search, Upload, User, ShieldCheck } from "lucide-react";
 
 interface HeaderProps {
@@ -22,7 +23,7 @@ export function Header({ onSearch }: HeaderProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Get user auth state
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<{id: number, username: string, role: string}>({
     queryKey: ['/api/auth/user'],
     retry: false,
     refetchOnWindowFocus: false,
@@ -49,7 +50,7 @@ export function Header({ onSearch }: HeaderProps) {
   };
   
   return (
-    <header className="bg-white shadow-sm z-20 sticky top-0">
+    <header className="bg-background shadow-sm z-20 sticky top-0 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
@@ -72,7 +73,7 @@ export function Header({ onSearch }: HeaderProps) {
             
             {/* Logo */}
             <Link href="/">
-              <div className="text-xl font-semibold text-neutral-900 flex items-center cursor-pointer">
+              <div className="text-xl font-semibold text-foreground flex items-center cursor-pointer">
                 <img 
                   src="/assets/flowtime-logo.png" 
                   alt="Flowtime" 
@@ -89,17 +90,20 @@ export function Header({ onSearch }: HeaderProps) {
                 <Input
                   type="text"
                   placeholder="Search audio tracks..."
-                  className="w-full pl-10 pr-4 py-2 rounded-full border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 rounded-full border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={searchQuery}
                   onChange={handleSearchInputChange}
                 />
-                <Search className="h-5 w-5 absolute left-3 top-2.5 text-neutral-500" />
+                <Search className="h-5 w-5 absolute left-3 top-2.5 text-muted-foreground" />
               </div>
             </form>
           </div>
           
           {/* User actions */}
           <div className="flex items-center space-x-4">
+            {/* Theme toggle */}
+            <ThemeToggle />
+            
             {/* Mobile search trigger */}
             <Button
               variant="ghost"
@@ -160,12 +164,12 @@ export function Header({ onSearch }: HeaderProps) {
                 <Input
                   type="text"
                   placeholder="Search audio tracks..."
-                  className="w-full pl-10 pr-4 py-2 rounded-full border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 rounded-full border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={searchQuery}
                   onChange={handleSearchInputChange}
                   autoFocus
                 />
-                <Search className="h-5 w-5 absolute left-3 top-2.5 text-neutral-500" />
+                <Search className="h-5 w-5 absolute left-3 top-2.5 text-muted-foreground" />
               </div>
             </form>
           </div>

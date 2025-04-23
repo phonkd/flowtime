@@ -3,18 +3,63 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14.3% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --primary: 30 100% 50%;
+    --primary-foreground: 26 83.3% 14.1%;
+    --secondary: 60 4.8% 95.9%;
+    --secondary-foreground: 24 9.8% 10%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --accent: 60 4.8% 95.9%;
+    --accent-foreground: 24 9.8% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 20 5.9% 90%;
+    --input: 20 5.9% 90%;
+    --ring: 30 100% 50%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 15 10% 6%;
+    --foreground: 60 9.1% 97.8%;
+    --card: 12 6% 12%;
+    --card-foreground: 60 9.1% 97.8%;
+    --popover: 12 6% 12%;
+    --popover-foreground: 60 9.1% 97.8%;
+    --primary: 30 100% 50%;
+    --primary-foreground: 60 9.1% 97.8%;
+    --secondary: 12 6.5% 15.1%;
+    --secondary-foreground: 60 9.1% 97.8%;
+    --muted: 12 6.5% 15.1%;
+    --muted-foreground: 24 5.4% 63.9%;
+    --accent: 12 6.5% 15.1%;
+    --accent-foreground: 60 9.1% 97.8%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 12 6.5% 20%;
+    --input: 12 6.5% 20%;
+    --ring: 30 100% 50%;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
-    @apply font-sans antialiased bg-white text-foreground;
+    @apply font-sans antialiased bg-background text-foreground transition-colors duration-300;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300;
+    @apply bg-card rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 text-card-foreground;
   }
   
   .gradient-text {
@@ -22,10 +67,10 @@
   }
   
   .hero-section {
-    @apply bg-gradient-to-r from-primary/5 to-amber-500/5;
+    @apply bg-gradient-to-r from-primary/5 to-amber-500/5 dark:from-primary/10 dark:to-amber-500/10;
   }
   
   .audio-player {
-    @apply bg-white shadow-md border border-primary/10 text-primary;
+    @apply bg-card shadow-md border border-primary/10 text-primary transition-colors duration-300;
   }
 }
