@@ -215,13 +215,24 @@ export async function initializeDatabase(): Promise<void> {
       }
     }
     
-    // Now check if we need to seed data
-    const userCountResult = await db.select({ count: sql`count(*)` }).from(schema.users);
-    const userCount = Number(userCountResult[0]?.count || '0');
-    
-    if (userCount > 0) {
-      console.log('Database already contains users, skipping data seeding.');
-      return;
+    // Now check if we need to seed data using direct SQL for maximum compatibility
+    try {
+      const client = await pool.connect();
+      try {
+        // Simple direct SQL query to check if users exist
+        const result = await client.query('SELECT COUNT(*) FROM users');
+        const userCount = parseInt(result.rows[0].count, 10);
+        
+        if (userCount > 0) {
+          console.log('Database already contains users, skipping data seeding.');
+          return;
+        }
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.log('Error checking user count, assuming empty database:', error);
+      // Continue with seeding if there was an error checking (likely means tables don't exist)
     }
     
     // Seed initial data
@@ -330,17 +341,31 @@ export async function initializeDatabase(): Promise<void> {
       { audioTrackId: tracks[2].id, tagId: tags[2].id }  // Confidence - Beginner
     ]);
     
-    // 6. Update category counts
+    // 6. Update category counts using direct SQL for robust compatibility
     for (const category of categories) {
-      const countResult = await db.select({ count: sql`count(*)` })
-        .from(schema.audioTracks)
-        .where(eq(schema.audioTracks.categoryId, category.id));
-      
-      const trackCount = Number(countResult[0]?.count || '0');
-      
-      await db.update(schema.categories)
-        .set({ count: trackCount })
-        .where(eq(schema.categories.id, category.id));
+      try {
+        const client = await pool.connect();
+        try {
+          // Direct SQL query to count tracks in each category
+          const result = await client.query(
+            'SELECT COUNT(*) FROM audio_tracks WHERE category_id = $1', 
+            [category.id]
+          );
+          const trackCount = parseInt(result.rows[0].count, 10);
+          
+          // Update category with count
+          await db.update(schema.categories)
+            .set({ count: trackCount })
+            .where(eq(schema.categories.id, category.id));
+            
+          console.log(`Updated category '${category.name}' with count: ${trackCount}`);
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        console.error(`Error updating count for category ${category.id}:`, error);
+        // Continue with other categories even if one fails
+      }
     }
     
     console.log('Database initialization completed successfully!');

@@ -34,17 +34,37 @@ A web platform for browsing, categorizing, and playing hypnosis audio recordings
 
 ### Database Setup
 
-The application features automatic database initialization:
+The application features a robust automatic database initialization system:
 
 1. **Development Mode**: Uses in-memory storage by default (no database required)
 2. **Docker/Production Mode**: Automatically creates schema and seeds initial data
-   - Tables are created on first run 
+   - Tables are created on first run if they don't exist
    - Admin user and demo content are automatically added
    - No manual migrations or SQL scripts required
+
+#### How Database Initialization Works
+
+The database initialization process follows these steps:
+
+1. **Connection Check**: Tests PostgreSQL connection with appropriate retry mechanism
+2. **Schema Detection**: Checks if database tables already exist
+3. **Schema Creation**: Creates tables if they don't exist using raw SQL queries
+4. **Data Seeding**: 
+   - Checks if users already exist (to prevent duplicate seeding)
+   - Seeds admin user, categories, tags, and sample audio tracks
+   - Sets up proper relationships between entities
+   - Updates category counts with track counts
+
+The system is designed to be resilient and handle various failure scenarios gracefully:
+- Falls back to direct SQL queries if ORM operations fail
+- Provides detailed error logging for troubleshooting
+- Safely skips seeding if data already exists
 
 This is configured via environment variables:
 - `USE_DATABASE=false` - Uses in-memory storage (default in development)
 - `USE_DATABASE=true` - Uses PostgreSQL (required for Docker/production)
+- `DATABASE_URL` - Connection string for PostgreSQL (used in Neon serverless)
+- Individual connection params like `POSTGRES_USER`, `POSTGRES_PASSWORD`, etc. (used in standard PostgreSQL)
 
 ### Installation
 

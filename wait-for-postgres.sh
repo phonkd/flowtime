@@ -4,9 +4,22 @@ set -e
 # More robust database connection check script for Docker environments
 # This explicitly uses TCP/IP connection to avoid socket connection issues
 #
-# DATABASE INITIALIZATION:
+# DATABASE INITIALIZATION PROCESS:
 # The application now initializes the database automatically via server/db.ts
-# on startup, creating all necessary tables and seeding initial data.
+# using a robust multi-step process that:
+#
+# 1. Tests PostgreSQL connectivity with appropriate retry mechanism
+# 2. Checks for existing database schema using direct SQL queries
+# 3. Creates tables if they don't exist using raw SQL (not ORM functions)
+# 4. Seeds initial data (admin user, categories, tags, sample tracks)
+# 5. Sets up relationships between entities
+# 6. Performs direct SQL COUNT queries to update category counts
+#
+# This approach is significantly more reliable than the previous method as it:
+# - Uses direct SQL queries instead of relying on ORM count methods
+# - Handles errors gracefully with proper try/catch blocks
+# - Provides detailed logging for troubleshooting
+# - Safely skips seeding if data already exists
 # 
 # FALLBACK MECHANISM:
 # The init-db.sh script is still available as a fallback option and can be 
