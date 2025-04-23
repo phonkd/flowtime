@@ -955,4 +955,210 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
+// Helper methods for MemStorage
+// These methods add the functionality needed for the admin section
+class MemShareableLinks {
+  private links: Map<number, ShareableLink> = new Map();
+  private currentLinkId: number = 1;
+
+  constructor() {}
+
+  create(insertLink: InsertShareableLink): ShareableLink {
+    const id = this.currentLinkId++;
+    const createdAt = new Date();
+    const link: ShareableLink = { 
+      ...insertLink, 
+      id,
+      createdAt
+    };
+    this.links.set(id, link);
+    return link;
+  }
+
+  getById(id: number): ShareableLink | undefined {
+    return this.links.get(id);
+  }
+
+  getByLinkId(linkId: string): ShareableLink | undefined {
+    return Array.from(this.links.values()).find(
+      (link) => link.linkId === linkId
+    );
+  }
+
+  getAll(): ShareableLink[] {
+    return Array.from(this.links.values());
+  }
+
+  getByUserId(userId: number): ShareableLink[] {
+    return Array.from(this.links.values()).filter(
+      (link) => link.createdById === userId
+    );
+  }
+
+  update(id: number, isActive: boolean): ShareableLink | undefined {
+    const link = this.links.get(id);
+    if (!link) return undefined;
+
+    const updatedLink: ShareableLink = { ...link, isActive };
+    this.links.set(id, updatedLink);
+    return updatedLink;
+  }
+
+  delete(id: number): boolean {
+    return this.links.delete(id);
+  }
+}
+
+class MemTrackAccess {
+  private access: Map<string, UserTrackAccess> = new Map();
+  private currentAccessId: number = 1;
+
+  constructor() {}
+
+  create(insertAccess: InsertUserTrackAccess): UserTrackAccess {
+    const id = this.currentAccessId++;
+    const createdAt = new Date();
+    const access: UserTrackAccess = {
+      ...insertAccess,
+      id,
+      createdAt
+    };
+    
+    const key = `${insertAccess.userId}-${insertAccess.audioTrackId}`;
+    this.access.set(key, access);
+    return access;
+  }
+
+  delete(userId: number, audioTrackId: number): boolean {
+    const key = `${userId}-${audioTrackId}`;
+    return this.access.delete(key);
+  }
+
+  getUsersWithAccess(audioTrackId: number, users: Map<number, User>): User[] {
+    const userIds = Array.from(this.access.values())
+      .filter(access => access.audioTrackId === audioTrackId)
+      .map(access => access.userId);
+    
+    return Array.from(users.values())
+      .filter(user => userIds.includes(user.id));
+  }
+
+  hasAccess(userId: number, audioTrackId: number): boolean {
+    const key = `${userId}-${audioTrackId}`;
+    return this.access.has(key);
+  }
+}
+
+// Add these methods to MemStorage
+Object.assign(MemStorage.prototype, {
+  // User operations
+  getAllUsers() {
+    return Array.from(this.users.values());
+  },
+  updateUser(id, userData) {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    const updatedUser = { ...user, ...userData };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  },
+  
+  // Category operations
+  updateCategory(id, categoryData) {
+    const category = this.categories.get(id);
+    if (!category) return undefined;
+    const updatedCategory = { ...category, ...categoryData };
+    this.categories.set(id, updatedCategory);
+    return updatedCategory;
+  },
+  deleteCategory(id) {
+    return this.categories.delete(id);
+  },
+  
+  // Tag operations
+  updateTag(id, tagData) {
+    const tag = this.tags.get(id);
+    if (!tag) return undefined;
+    const updatedTag = { ...tag, ...tagData };
+    this.tags.set(id, updatedTag);
+    return updatedTag;
+  },
+  deleteTag(id) {
+    return this.tags.delete(id);
+  },
+  
+  // Audio track operations
+  updateAudioTrack(id, trackData) {
+    const track = this.audioTracks.get(id);
+    if (!track) return undefined;
+    const updatedTrack = { ...track, ...trackData };
+    this.audioTracks.set(id, updatedTrack);
+    return updatedTrack;
+  },
+  deleteAudioTrack(id) {
+    return this.audioTracks.delete(id);
+  },
+  
+  // Initialize shareable links and track access
+  initialized: false,
+  shareableLinks: null,
+  trackAccess: null,
+  
+  ensureInitialized() {
+    if (!this.initialized) {
+      this.shareableLinks = new MemShareableLinks();
+      this.trackAccess = new MemTrackAccess();
+      this.initialized = true;
+    }
+  },
+  
+  // Shareable Links operations
+  createShareableLink(insertLink) {
+    this.ensureInitialized();
+    return this.shareableLinks.create(insertLink);
+  },
+  getShareableLinkById(id) {
+    this.ensureInitialized();
+    return this.shareableLinks.getById(id);
+  },
+  getShareableLinkByLinkId(linkId) {
+    this.ensureInitialized();
+    return this.shareableLinks.getByLinkId(linkId);
+  },
+  getAllShareableLinks() {
+    this.ensureInitialized();
+    return this.shareableLinks.getAll();
+  },
+  getUserShareableLinks(userId) {
+    this.ensureInitialized();
+    return this.shareableLinks.getByUserId(userId);
+  },
+  updateShareableLink(id, isActive) {
+    this.ensureInitialized();
+    return this.shareableLinks.update(id, isActive);
+  },
+  deleteShareableLink(id) {
+    this.ensureInitialized();
+    return this.shareableLinks.delete(id);
+  },
+  
+  // User track access operations
+  grantUserAccess(insertAccess) {
+    this.ensureInitialized();
+    return this.trackAccess.create(insertAccess);
+  },
+  revokeUserAccess(userId, audioTrackId) {
+    this.ensureInitialized();
+    return this.trackAccess.delete(userId, audioTrackId);
+  },
+  getUsersWithAccessToTrack(audioTrackId) {
+    this.ensureInitialized();
+    return this.trackAccess.getUsersWithAccess(audioTrackId, this.users);
+  },
+  checkUserAccessToTrack(userId, audioTrackId) {
+    this.ensureInitialized();
+    return this.trackAccess.hasAccess(userId, audioTrackId);
+  }
+});
+
 export const storage = new MemStorage();
