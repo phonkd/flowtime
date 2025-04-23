@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from 'dotenv';
-import { checkDatabaseConnection } from './db';
+import { checkDatabaseConnection, initializeDatabase } from './db';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -57,6 +57,15 @@ app.use((req, res, next) => {
       const isDbConnected = await checkDatabaseConnection();
       if (isDbConnected) {
         console.log('✅ Successfully connected to the PostgreSQL database');
+        
+        // Initialize database schema and seed data if needed
+        try {
+          await initializeDatabase();
+          console.log('✅ Database initialization completed successfully');
+        } catch (initError) {
+          console.error('❌ Error initializing database:', initError);
+          console.warn('⚠️ Continuing startup, but database may not be properly initialized.');
+        }
       } else {
         console.warn('⚠️ Could not establish connection to the database. Some features may not work properly.');
       }
