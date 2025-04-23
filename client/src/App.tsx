@@ -10,6 +10,7 @@ import CategoryPage from "@/pages/category";
 import Auth from "@/pages/auth";
 import UploadPage from "@/pages/upload";
 import AdminPage from "@/pages/admin-page";
+import SharedTrackPage from "@/pages/shared-track";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/login" component={Auth} />
       <Route path="/upload" component={UploadPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/shared/:linkId" component={SharedTrackPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

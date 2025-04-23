@@ -1006,6 +1006,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public API for accessing shared tracks
+  app.get("/api/shared/:linkId", async (req: Request, res: Response) => {
+    try {
+      const linkId = req.params.linkId;
+      
+      // Get the shareable link
+      const link = await storage.getShareableLinkByLinkId(linkId);
+      if (!link) {
+        return res.status(404).json({ message: "Shared content not found" });
+      }
+      
+      // Check if the link is active
+      if (!link.isActive) {
+        return res.status(403).json({ message: "This link is no longer active" });
+      }
+      
+      // Check if the link has expired
+      if (link.expiresAt && new Date(link.expiresAt) < new Date()) {
+        return res.status(403).json({ message: "This link has expired" });
+      }
+      
+      // Get the audio track with details
+      const track = await storage.getAudioTrackWithDetails(link.audioTrackId);
+      if (!track) {
+        return res.status(404).json({ message: "Audio track not found" });
+      }
+      
+      res.status(200).json(track);
+    } catch (error) {
+      console.error("Error retrieving shared content:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   // User track access API
   app.post("/api/track-access", requireAdmin, async (req: Request, res: Response) => {
     try {
