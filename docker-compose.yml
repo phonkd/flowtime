@@ -1,9 +1,9 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # PostgreSQL database service
   db:
-    image: postgres:16-alpine
+    image: postgres:14-alpine
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
@@ -22,7 +22,7 @@ services:
 
   # Application service
   app:
-    image: ${APP_IMAGE:-hypnosis-audio-platform:latest}
+    image: ghcr.io/phonkd/flowtime:0.1
     ports:
       - "${PORT:-5000}:5000"
     environment:
