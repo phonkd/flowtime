@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -89,6 +89,122 @@ const userCreateSchema = z.object({
 });
 
 type UserCreateFormValues = z.infer<typeof userCreateSchema>;
+
+// Password Reset Component
+function PasswordResetDialog({ user, onClose }: { user: any, onClose: () => void }) {
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const form = useForm<PasswordResetFormValues>({
+    resolver: zodResolver(passwordResetSchema),
+    defaultValues: {
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+  
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: PasswordResetFormValues) => {
+      const res = await apiRequest("POST", `/api/admin/users/${user.id}/reset-password`, { newPassword: data.newPassword });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password reset successful",
+        description: `Password for ${user.username} has been reset`,
+      });
+      queryClient.invalidateQueries({queryKey: ['/api/admin/users']});
+      form.reset();
+      setOpen(false);
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error resetting password",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  useEffect(() => {
+    if (user) {
+      setOpen(true);
+    }
+  }, [user]);
+  
+  function onSubmit(data: PasswordResetFormValues) {
+    resetPasswordMutation.mutate(data);
+  }
+  
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) onClose();
+    }}>
+      <DialogContent className="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>Reset Password</DialogTitle>
+          <DialogDescription>
+            Reset password for user: {user?.username}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="newPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>New Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter className="pt-4">
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={() => {
+                  setOpen(false);
+                  onClose();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={resetPasswordMutation.isPending}>
+                {resetPasswordMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Reset Password
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // Create User Component
 function CreateUserDialog() {
@@ -267,6 +383,7 @@ export function UsersTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Fetch users
@@ -366,13 +483,24 @@ export function UsersTab() {
                     <TableCell>{user.email || "-"}</TableCell>
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setResetPasswordUser(user)}
+                          title="Reset Password"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(user)}
+                          title="Edit User"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -453,6 +581,14 @@ export function UsersTab() {
           </Form>
         </DialogContent>
       </Dialog>
+      
+      {/* Password Reset Dialog */}
+      {resetPasswordUser && (
+        <PasswordResetDialog 
+          user={resetPasswordUser} 
+          onClose={() => setResetPasswordUser(null)} 
+        />
+      )}
     </div>
   );
 }
