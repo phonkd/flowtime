@@ -36,13 +36,16 @@ COPY <<EOF /app/wait-for-postgres.sh
 #!/bin/bash
 set -e
 
+# Use explicit host parameter to force TCP/IP connection
 host="postgres"
 port="5432"
 user="\${POSTGRES_USER:-hypnosis}"
+password="\${POSTGRES_PASSWORD:-hypnosis_password}"
 database="\${POSTGRES_DB:-hypnosis_db}"
 
-echo "Waiting for PostgreSQL to be ready..."
-until PGPASSWORD="\${POSTGRES_PASSWORD}" psql -h "$host" -p "$port" -U "$user" -d "$database" -c '\q'; do
+echo "Waiting for PostgreSQL to be ready at $host:$port..."
+# Force TCP connection with -h flag and explicit connection string format
+until PGPASSWORD="$password" psql "postgresql://$user:$password@$host:$port/$database" -c '\q'; do
   echo "PostgreSQL is unavailable - sleeping for 2 seconds"
   sleep 2
 done

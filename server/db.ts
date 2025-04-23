@@ -21,8 +21,36 @@ if (USE_DATABASE && !process.env.DATABASE_URL) {
   );
 }
 
-// Create a dummy pool and DB if we're not using the real database
-let connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+// Determine database connection details
+let connectionString = '';
+
+// Try to build connectionString from individual env vars if DATABASE_URL is not set
+if (!process.env.DATABASE_URL && USE_DATABASE) {
+  const pgUser = process.env.POSTGRES_USER || 'hypnosis';
+  const pgPassword = process.env.POSTGRES_PASSWORD || 'hypnosis_password';
+  const pgHost = process.env.POSTGRES_HOST || 'postgres';
+  const pgPort = process.env.POSTGRES_PORT || '5432';
+  const pgDatabase = process.env.POSTGRES_DB || 'hypnosis_db';
+  
+  connectionString = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}`;
+  console.log(`Using constructed DATABASE_URL from individual environment variables (host: ${pgHost})`);
+} else {
+  // Use the existing DATABASE_URL or a dummy one if we're not using the database
+  connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+  
+  if (USE_DATABASE) {
+    console.log('Using DATABASE_URL from environment variable');
+    // For debugging Docker Compose issues, log the host from the connection string
+    try {
+      const url = new URL(connectionString);
+      console.log(`Database host from connection string: ${url.hostname}`);
+    } catch (e) {
+      console.error('Could not parse DATABASE_URL:', e);
+    }
+  } else {
+    console.log('Using dummy DATABASE_URL since USE_DATABASE is false');
+  }
+}
 
 // Configure pool options with reasonable timeouts and retry logic for Docker Compose
 const poolOptions = {
@@ -47,18 +75,55 @@ export const pool = new Pool(poolOptions);
 // Create the Drizzle ORM instance with our pool and schema
 export const db = drizzle({ client: pool, schema });
 
-// Simple health check function to verify database connectivity
+// Enhanced health check function to verify database connectivity
 export async function checkDatabaseConnection(): Promise<boolean> {
-  try {
-    const client = await pool.connect();
-    try {
-      await client.query('SELECT 1');
-      return true;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error('Database connection check failed:', error);
+  // Don't even try if we're not using a database
+  if (!USE_DATABASE) {
+    console.log('Database check skipped since USE_DATABASE is false');
     return false;
   }
+
+  let retries = 5;
+  const retryDelay = 2000; // 2 seconds
+  
+  while (retries > 0) {
+    try {
+      console.log(`Attempting database connection (${retries} retries left)...`);
+      const client = await pool.connect();
+      try {
+        // Check if we can query the database
+        const result = await client.query('SELECT version()');
+        const version = result.rows[0].version;
+        console.log(`Database connected successfully. PostgreSQL version: ${version.split(' ')[1]}`);
+        
+        // Check if we need to initialize the database with schema
+        // This code might be useful if we want to check tables later
+        /*
+        const tableCheckQuery = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')";
+        const tableResult = await client.query(tableCheckQuery);
+        const usersTableExists = tableResult.rows[0].exists;
+        if (!usersTableExists) {
+          console.log('Users table not found. Database may need initialization.');
+        }
+        */
+        
+        return true;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error(`Database connection attempt failed (${retries} retries left):`, error.message);
+      retries--;
+      
+      if (retries > 0) {
+        console.log(`Waiting ${retryDelay}ms before retrying...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      } else {
+        console.error('All database connection attempts failed.');
+        return false;
+      }
+    }
+  }
+  
+  return false;
 }

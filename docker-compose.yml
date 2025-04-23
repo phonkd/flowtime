@@ -54,6 +54,12 @@ services:
       # Database settings for Docker Compose
       NODE_ENV: development
       USE_DATABASE: "true"
+      # Use explicit host 'postgres' which is the service name in Docker Compose
+      POSTGRES_USER: hypnosis
+      POSTGRES_PASSWORD: hypnosis_password
+      POSTGRES_DB: hypnosis_db
+      POSTGRES_HOST: postgres
+      # Full connection string with explicit service name as host
       DATABASE_URL: postgresql://hypnosis:hypnosis_password@postgres:5432/hypnosis_db
       SESSION_SECRET: hypnosis-app-secret-key-docker
     # Use environment variables from .env file as override
