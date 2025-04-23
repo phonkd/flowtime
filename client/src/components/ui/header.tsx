@@ -72,13 +72,13 @@ export function Header({ onSearch }: HeaderProps) {
             
             {/* Logo */}
             <Link href="/">
-              <a className="text-xl font-semibold text-neutral-900 flex items-center">
+              <div className="text-xl font-semibold text-neutral-900 flex items-center cursor-pointer">
                 <img 
                   src="/assets/flowtime-logo.png" 
                   alt="Flowtime" 
                   className="h-10 mr-2" 
                 />
-              </a>
+              </div>
             </Link>
           </div>
           
