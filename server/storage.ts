@@ -14,6 +14,7 @@ import {
   type AudioTrackWithDetails, type CategoryWithCount, type TagWithCount,
   type ShareableLinkWithDetails, type UserTrackAccessWithDetails
 } from "@shared/schema";
+import { eq, inArray, like, or, and } from "drizzle-orm/expressions";
 
 export interface IStorage {
   sessionStore: any;
@@ -654,6 +655,87 @@ export class DatabaseStorage implements IStorage {
     
     // Initialize database with sample data if empty
     this.initializeDatabase();
+  }
+  
+  // Category operations
+  async updateCategory(id: number, categoryData: Partial<Category>): Promise<Category | undefined> {
+    try {
+      const category = await this.getCategoryById(id);
+      if (!category) return undefined;
+      
+      const [updatedCategory] = await db
+        .update(categories)
+        .set(categoryData)
+        .where(eq(categories.id, id))
+        .returning();
+      
+      return updatedCategory;
+    } catch (error) {
+      console.error('Error updating category:', error);
+      return undefined;
+    }
+  }
+  
+  async deleteCategory(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(categories)
+        .where(eq(categories.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      return false;
+    }
+  }
+  
+  // Tag operations
+  async updateTag(id: number, tagData: Partial<Tag>): Promise<Tag | undefined> {
+    try {
+      const tag = await this.getTagById(id);
+      if (!tag) return undefined;
+      
+      const [updatedTag] = await db
+        .update(tags)
+        .set(tagData)
+        .where(eq(tags.id, id))
+        .returning();
+      
+      return updatedTag;
+    } catch (error) {
+      console.error('Error updating tag:', error);
+      return undefined;
+    }
+  }
+  
+  async deleteTag(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(tags)
+        .where(eq(tags.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting tag:', error);
+      return false;
+    }
+  }
+  
+  // User track access operations
+  async checkUserAccessToTrack(userId: number, audioTrackId: number): Promise<boolean> {
+    try {
+      const [access] = await db.select()
+        .from(userTrackAccess)
+        .where(and(
+          eq(userTrackAccess.userId, userId),
+          eq(userTrackAccess.audioTrackId, audioTrackId)
+        ));
+      
+      return !!access;
+    } catch (error) {
+      console.error('Error checking user access to track:', error);
+      return false;
+    }
   }
   
   private async initializeDatabase() {
@@ -1465,6 +1547,11 @@ class MemTrackAccess {
     return Array.from(this.access.values())
       .filter(access => access.userId === userId)
       .map(access => access.audioTrackId);
+  }
+  
+  checkUserAccessToTrack(userId: number, audioTrackId: number): Promise<boolean> {
+    const key = `${userId}-${audioTrackId}`;
+    return Promise.resolve(this.access.has(key));
   }
 }
 
