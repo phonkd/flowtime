@@ -1,9 +1,16 @@
 # shell.nix - For traditional nix-shell usage
-(import (
-  fetchTarball {
-    url = "https://github.com/edolstra/flake-compat/archive/master.tar.gz";
-    sha256 = "19d2z6xsvpxm184m41qrpi1bplilwipgnzv9jy17fgw421785q1m";
-  }
-) {
-  src = ./.;
-}).shellNix
+with import <nixpkgs> {};
+
+mkShell {
+  buildInputs = [
+    nodejs-18_x
+    nodePackages.typescript
+    postgresql_14
+  ];
+
+  shellHook = ''
+    echo "Hypnosis Audio Platform development environment"
+    echo "Node.js: $(node --version)"
+    echo "PostgreSQL: $(psql --version)"
+  '';
+}
