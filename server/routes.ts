@@ -338,8 +338,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get form data
       const { title, description, categoryId, duration } = req.body;
       
-      if (!title || !description || !categoryId) {
-        return res.status(400).json({ message: "Missing required fields" });
+      console.log("Upload form data received:", { title, description, categoryId, duration, file: req.file?.filename });
+      
+      // Check each required field individually for better error messages
+      if (!title) {
+        return res.status(400).json({ message: "Missing required field: title" });
+      }
+      
+      if (!description) {
+        return res.status(400).json({ message: "Missing required field: description" });
+      }
+      
+      if (!categoryId) {
+        return res.status(400).json({ message: "Missing required field: categoryId" });
       }
       
       // Convert to expected types

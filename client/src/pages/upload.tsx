@@ -219,6 +219,21 @@ export default function UploadPage() {
       // Open and send the request
       xhr.open('POST', '/api/uploads/audio', true);
       xhr.timeout = 3600000; // 1 hour timeout for large files
+      
+      // Log form data contents for debugging
+      console.log('Form data being sent:', {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        categoryId: formData.get('categoryId'),
+        audioFile: formData.get('audioFile') ? 'File present' : 'No file',
+      });
+      
+      // Add necessary headers for proper error handling
+      xhr.setRequestHeader('Accept', 'application/json');
+      
+      // For multipart/form-data, don't set Content-Type header
+      // Browser will automatically set it with the boundary
+      
       xhr.send(formData);
       
       return promise;
@@ -380,6 +395,7 @@ export default function UploadPage() {
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
