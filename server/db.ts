@@ -1,125 +1,125 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
 import * as schema from "@shared/schema";
+import { drizzle } from 'drizzle-orm';
 
-neonConfig.webSocketConstructor = ws;
-
-// Check if we're using the database (from environment variable)
+// Check if database should be used
 const USE_DATABASE = process.env.USE_DATABASE === 'true';
-console.log('USE_DATABASE env variable value:', process.env.USE_DATABASE);
-console.log('USE_DATABASE parsed as:', USE_DATABASE);
+console.log('USE_DATABASE setting:', USE_DATABASE);
 
-// Database URL presence check
-const isDatabaseUrlSet = !!process.env.DATABASE_URL;
-console.log('DATABASE_URL present:', isDatabaseUrlSet);
+// Basic configuration for database connection
+let connectionConfig: any = {};
 
-// Only throw an error if we're specifically trying to use the database
-if (USE_DATABASE && !process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set when USE_DATABASE=true. Did you forget to provision a database?",
-  );
-}
-
-// Determine database connection details
-let connectionString = '';
-
-// Try to build connectionString from individual env vars if DATABASE_URL is not set
-if (!process.env.DATABASE_URL && USE_DATABASE) {
-  const pgUser = process.env.POSTGRES_USER || 'hypnosis';
-  const pgPassword = process.env.POSTGRES_PASSWORD || 'hypnosis_password';
-  const pgHost = process.env.POSTGRES_HOST || 'postgres';
-  const pgPort = process.env.POSTGRES_PORT || '5432';
-  const pgDatabase = process.env.POSTGRES_DB || 'hypnosis_db';
-  
-  connectionString = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}`;
-  console.log(`Using constructed DATABASE_URL from individual environment variables (host: ${pgHost})`);
-} else {
-  // Use the existing DATABASE_URL or a dummy one if we're not using the database
-  connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
-  
-  if (USE_DATABASE) {
-    console.log('Using DATABASE_URL from environment variable');
-    // For debugging Docker Compose issues, log the host from the connection string
-    try {
-      const url = new URL(connectionString);
-      console.log(`Database host from connection string: ${url.hostname}`);
-    } catch (e) {
-      console.error('Could not parse DATABASE_URL:', e);
+if (USE_DATABASE) {
+  try {
+    // First try to use the DATABASE_URL if available
+    if (process.env.DATABASE_URL) {
+      console.log('Using DATABASE_URL for connection');
+      const url = new URL(process.env.DATABASE_URL);
+      
+      connectionConfig = {
+        user: decodeURIComponent(url.username),
+        password: decodeURIComponent(url.password),
+        host: url.hostname,
+        port: parseInt(url.port || '5432', 10),
+        database: url.pathname.substring(1),
+        ssl: false
+      };
+      
+      console.log(`Database config: ${connectionConfig.host}:${connectionConfig.port}/${connectionConfig.database}`);
     }
-  } else {
-    console.log('Using dummy DATABASE_URL since USE_DATABASE is false');
+    // Otherwise use individual PostgreSQL environment variables
+    else if (process.env.POSTGRES_HOST) {
+      console.log('Using individual PostgreSQL environment variables');
+      connectionConfig = {
+        user: process.env.POSTGRES_USER || 'postgres',
+        password: process.env.POSTGRES_PASSWORD || 'postgres',
+        host: process.env.POSTGRES_HOST,
+        port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
+        database: process.env.POSTGRES_DB || 'postgres',
+        ssl: false
+      };
+    }
+    // If nothing else is available, use localhost defaults
+    else {
+      console.log('No database configuration found, using localhost defaults');
+      connectionConfig = {
+        user: 'postgres',
+        password: 'postgres',
+        host: 'localhost',
+        port: 5432, 
+        database: 'postgres',
+        ssl: false
+      };
+    }
+  }
+  catch (error) {
+    console.error('Error setting up database connection:', error);
+    console.log('Using fallback configuration');
+    connectionConfig = {
+      connectionString: process.env.DATABASE_URL,
+      ssl: false
+    };
   }
 }
+else {
+  // Dummy configuration when not using a database
+  console.log('Using dummy database configuration (database disabled)');
+  connectionConfig = {
+    user: 'dummy',
+    password: 'dummy',
+    host: 'localhost',
+    port: 5432,
+    database: 'dummy',
+    ssl: false
+  };
+}
 
-// Configure pool options with reasonable timeouts and retry logic for Docker Compose
-const poolOptions = {
-  connectionString,
-  max: 20, // Maximum number of clients the pool should contain
-  connectionTimeoutMillis: 10000, // How long to wait for connection
-  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle
-  allowExitOnIdle: false, // Don't exit when all clients finish
-  // Retry strategy for Docker startup situations
-  retry_strategy: {
-    retries: 5,
-    factor: 2,
-    minTimeout: 1000,
-    maxTimeout: 10000,
-    randomize: true,
-  }
-};
+// Create a connection pool
+export const pool = new Pool({
+  ...connectionConfig,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000
+});
 
-// Create the database connection pool with our configured options
-export const pool = new Pool(poolOptions);
+// Create the drizzle db instance
+export const db = drizzle.drizzle(pool, { schema });
 
-// Create the Drizzle ORM instance with our pool and schema
-export const db = drizzle({ client: pool, schema });
-
-// Enhanced health check function to verify database connectivity
+// Health check function
 export async function checkDatabaseConnection(): Promise<boolean> {
-  // Don't even try if we're not using a database
   if (!USE_DATABASE) {
-    console.log('Database check skipped since USE_DATABASE is false');
+    console.log('Database check skipped (database disabled)');
     return false;
   }
-
+  
   let retries = 5;
-  const retryDelay = 2000; // 2 seconds
+  const retryDelay = 2000;
   
   while (retries > 0) {
     try {
-      console.log(`Attempting database connection (${retries} retries left)...`);
+      console.log(`Connecting to database at ${connectionConfig.host}:${connectionConfig.port} (${retries} retries left)...`);
+      
       const client = await pool.connect();
       try {
-        // Check if we can query the database
         const result = await client.query('SELECT version()');
         const version = result.rows[0].version;
-        console.log(`Database connected successfully. PostgreSQL version: ${version.split(' ')[1]}`);
-        
-        // Check if we need to initialize the database with schema
-        // This code might be useful if we want to check tables later
-        /*
-        const tableCheckQuery = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')";
-        const tableResult = await client.query(tableCheckQuery);
-        const usersTableExists = tableResult.rows[0].exists;
-        if (!usersTableExists) {
-          console.log('Users table not found. Database may need initialization.');
-        }
-        */
-        
+        console.log(`✅ Connected to PostgreSQL: ${version}`);
         return true;
-      } finally {
+      }
+      finally {
         client.release();
       }
-    } catch (error: any) {
-      console.error(`Database connection attempt failed (${retries} retries left):`, error.message || String(error));
+    }
+    catch (error: any) {
+      console.error(`❌ Database connection error (${retries} retries left):`, error.message);
       retries--;
       
       if (retries > 0) {
-        console.log(`Waiting ${retryDelay}ms before retrying...`);
+        console.log(`Waiting ${retryDelay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
-      } else {
-        console.error('All database connection attempts failed.');
+      }
+      else {
+        console.error('All database connection attempts failed');
         return false;
       }
     }
