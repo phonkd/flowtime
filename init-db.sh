@@ -94,12 +94,12 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     VALUES ('admin', 'admin123', 'Admin User', 'admin@example.com', 'admin', NOW());
     
     -- Insert categories
-    INSERT INTO "categories" ("name", "description")
+    INSERT INTO "categories" ("name", "description", "image_url")
     VALUES 
-        ('Relaxation', 'Peaceful guided meditations with calming sounds'),
-        ('Confidence', 'Build lasting confidence and self-esteem'),
-        ('Sleep', 'Fall asleep faster with gentle voice guidance'),
-        ('Stress Relief', 'Release stress and find inner calm');
+        ('Relaxation', 'Peaceful guided meditations with calming sounds', 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80'),
+        ('Confidence', 'Build lasting confidence and self-esteem', 'https://images.unsplash.com/photo-1534859108275-a3a6f23619fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80'),
+        ('Sleep', 'Fall asleep faster with gentle voice guidance', 'https://images.unsplash.com/photo-1518112166137-85f9979a43aa?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80'),
+        ('Stress Relief', 'Release stress and find inner calm', 'https://images.unsplash.com/photo-1476611338391-6f395a0ebc7b?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80');
     
     -- Insert tags
     INSERT INTO "tags" ("name")
