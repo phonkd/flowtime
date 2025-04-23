@@ -27,5 +27,5 @@ ENV PORT=5000
 # Expose port
 EXPOSE 5000
 
-# Use simpler approach - just run development mode which should work regardless
-CMD ["npm", "run", "dev"]
+# Start the application directly without a script file
+CMD ["sh", "-c", "echo 'Starting application...' && npm run dev"]
