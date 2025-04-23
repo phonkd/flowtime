@@ -1173,4 +1173,8 @@ Object.assign(MemStorage.prototype, {
   }
 });
 
-export const storage = new MemStorage();
+// Choose storage implementation based on environment variable
+const USE_DATABASE = process.env.USE_DATABASE === 'true';
+export const storage = USE_DATABASE ? new DatabaseStorage() : new MemStorage();
+
+console.log(`Using ${USE_DATABASE ? 'DatabaseStorage' : 'MemStorage'} for data persistence`);

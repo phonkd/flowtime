@@ -72,7 +72,7 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
           </Button>
           
           <Button 
-            className="w-full justify-start items-center bg-primary hover:bg-primary/90 text-white"
+            className="w-full justify-start items-center bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={() => handleNavigate('/login')}
           >
             <User className="h-4 w-4 mr-2" />
@@ -93,7 +93,7 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
           <span className="flex items-center">
             <span>All Recordings</span>
           </span>
-          <span className={`text-xs rounded-full px-2 py-0.5 ${isHomePage ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+          <span className={`text-xs rounded-full px-2 py-0.5 ${isHomePage ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             {categories?.reduce((sum, cat) => sum + cat.count, 0) || "..."}
           </span>
         </Button>
@@ -120,7 +120,7 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
                 <span className="flex items-center">
                   <span>{category.name}</span>
                 </span>
-                <span className={`text-xs rounded-full px-2 py-0.5 ${categoryFromUrl === category.id ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                <span className={`text-xs rounded-full px-2 py-0.5 ${categoryFromUrl === category.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                   {category.count}
                 </span>
               </Button>
