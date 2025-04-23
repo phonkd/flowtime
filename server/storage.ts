@@ -1375,10 +1375,16 @@ class MemShareableLinks {
   create(insertLink: InsertShareableLink): ShareableLink {
     const id = this.currentLinkId++;
     const createdAt = new Date();
+    // Generate a random linkId if not provided
+    const linkId = insertLink.linkId || Math.random().toString(36).substring(2, 15);
+    // Set default values for other required fields
     const link: ShareableLink = { 
       ...insertLink, 
       id,
-      createdAt
+      createdAt,
+      linkId,
+      isActive: insertLink.isActive !== undefined ? insertLink.isActive : true,
+      expiresAt: insertLink.expiresAt !== undefined ? insertLink.expiresAt : null
     };
     this.links.set(id, link);
     return link;
