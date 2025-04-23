@@ -73,8 +73,14 @@ export function Header({ onSearch }: HeaderProps) {
             {/* Logo */}
             <Link href="/">
               <a className="text-xl font-semibold text-neutral-900 flex items-center">
-                <Music className="h-7 w-7 mr-2 text-primary" />
-                <span>Hypnosis Library</span>
+                <img 
+                  src="/assets/flowtime-logo.png" 
+                  alt="Flowtime" 
+                  className="h-10 mr-2" 
+                />
+                <span className="bg-gradient-to-r from-primary to-amber-500 bg-clip-text text-transparent font-bold">
+                  Flowtime
+                </span>
               </a>
             </Link>
           </div>

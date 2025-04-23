@@ -11,3 +11,21 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer components {
+  .card {
+    @apply bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-amber-500 bg-clip-text text-transparent;
+  }
+  
+  .hero-section {
+    @apply bg-gradient-to-r from-primary/10 to-amber-500/10;
+  }
+  
+  .audio-player {
+    @apply bg-gradient-to-r from-primary/90 to-amber-500/90 text-white;
+  }
+}
