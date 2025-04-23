@@ -106,6 +106,18 @@ export class MemStorage implements IStorage {
   }
   
   private initializeSync() {
+    // Create admin user
+    const adminUser: User = {
+      id: this.currentUserId++,
+      username: "admin",
+      password: "admin123",  // Simple password for testing
+      role: "admin",
+      fullName: "Admin User",
+      email: "admin@example.com"
+    };
+    this.users.set(adminUser.id, adminUser);
+    console.log("Created admin user:", adminUser.username);
+    
     // Create categories directly without async
     const relaxation: Category = { 
       id: this.currentCategoryId++,
