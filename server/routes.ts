@@ -1,7 +1,7 @@
-import type { Express, Request, Response } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertUserProgressSchema } from "@shared/schema";
+import { insertUserSchema, insertUserProgressSchema, insertAudioTrackSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import session from "express-session";
@@ -9,9 +9,48 @@ import MemoryStore from "memorystore";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Configure multer for audio file uploads
+  const audioStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'audio');
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      // Generate a unique filename with timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, uniqueSuffix + ext);
+    }
+  });
+  
+  // Filter to accept only audio files
+  const audioFileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedMimeTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only audio files are allowed.'));
+    }
+  };
+  
+  const uploadAudio = multer({ 
+    storage: audioStorage,
+    fileFilter: audioFileFilter,
+    limits: {
+      fileSize: 50 * 1024 * 1024, // 50MB max file size
+    }
+  });
 
   // Session setup
   const SessionStore = MemoryStore(session);
@@ -285,6 +324,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Internal server error" });
     }
   });
+  
+  // Audio file upload route
+  app.post("/api/uploads/audio", uploadAudio.single('audioFile'), async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No audio file uploaded" });
+      }
+      
+      // Get form data
+      const { title, description, categoryId, duration } = req.body;
+      
+      if (!title || !description || !categoryId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Convert to expected types
+      const categoryIdNum = parseInt(categoryId);
+      const durationNum = duration ? parseInt(duration) : 0;
+      
+      // Generate relative path for audio URL
+      const audioUrl = `/uploads/audio/${path.basename(req.file.path)}`;
+      
+      // Create placeholder image URL if not provided
+      const imageUrl = req.body.imageUrl || "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80";
+      
+      // Create audio track in database
+      const trackData = {
+        title,
+        description,
+        categoryId: categoryIdNum,
+        audioUrl,
+        imageUrl,
+        duration: durationNum
+      };
+      
+      const audioTrack = await storage.createAudioTrack(trackData);
+      
+      // If tags are provided, add them to the audio track
+      if (req.body.tags) {
+        const tags = Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags];
+        for (const tagId of tags) {
+          const tagIdNum = parseInt(tagId);
+          if (!isNaN(tagIdNum)) {
+            await storage.addTagToAudioTrack(audioTrack.id, tagIdNum);
+          }
+        }
+      }
+      
+      // Update category count
+      const category = await storage.getCategoryById(categoryIdNum);
+      if (category) {
+        await storage.updateCategoryCount(categoryIdNum, category.count + 1);
+      }
+      
+      // Return the created audio track with details
+      const trackWithDetails = await storage.getAudioTrackWithDetails(audioTrack.id);
+      res.status(201).json(trackWithDetails);
+    } catch (error) {
+      console.error("Error uploading audio:", error);
+      res.status(500).json({ 
+        message: "Error uploading audio file",
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
+  // Serve static files from public directory
+  app.use('/uploads', (req, res, next) => {
+    // Set no-cache headers for uploaded files
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    next();
+  }, express.static(path.join(process.cwd(), 'public', 'uploads')));
 
   return httpServer;
 }
