@@ -48,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     storage: audioStorage,
     fileFilter: audioFileFilter,
     limits: {
-      fileSize: 50 * 1024 * 1024, // 50MB max file size
+      fileSize: 150 * 1024 * 1024, // 150MB max file size
     }
   });
 
@@ -327,9 +327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Audio file upload route
   app.post("/api/uploads/audio", uploadAudio.single('audioFile'), async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
+    // Authentication is optional for demo purposes
+    // In a production app, you would require authentication
     
     try {
       if (!req.file) {

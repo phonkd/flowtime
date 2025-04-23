@@ -127,10 +127,23 @@ export default function UploadPage() {
   // Upload audio mutation
   const uploadMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      return await apiRequest('/api/uploads/audio', {
-        method: 'POST',
-        body: data,
-      } as RequestInit);
+      try {
+        const response = await apiRequest('/api/uploads/audio', {
+          method: 'POST',
+          body: data,
+        } as RequestInit);
+        return response;
+      } catch (error: any) {
+        console.error('Upload error:', error);
+        // Throw a more detailed error for better debugging
+        if (error instanceof Error) {
+          throw new Error(`Upload failed: ${error.message}`);
+        } else if (typeof error === 'object' && error !== null) {
+          throw new Error(`Upload failed: ${JSON.stringify(error)}`);
+        } else {
+          throw new Error('Upload failed: Unknown error');
+        }
+      }
     },
     onSuccess: () => {
       // Invalidate and refetch
@@ -146,9 +159,11 @@ export default function UploadPage() {
       setLocation('/');
     },
     onError: (error: any) => {
+      console.error('Mutation error:', error);
+      
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to upload audio. Please try again.',
+        title: 'Upload Failed',
+        description: error.message || 'Failed to upload audio. Please try again with a smaller file or check your network connection.',
         variant: 'destructive',
       });
     },
@@ -342,7 +357,7 @@ export default function UploadPage() {
                       </div>
                     </FormControl>
                     <FormDescription>
-                      Upload an MP3, WAV, or OGG file (max 50MB)
+                      Upload an MP3, WAV, or OGG file (max 150MB)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

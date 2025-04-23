@@ -2,8 +2,32 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let errorMessage = '';
+    
+    try {
+      // Try to parse as JSON first
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const clonedRes = res.clone();
+        const errorData = await clonedRes.json();
+        errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
+      } else {
+        // Fallback to text if not JSON
+        errorMessage = await res.text();
+      }
+    } catch (e) {
+      // If JSON parsing fails, try to get text
+      try {
+        errorMessage = await res.text();
+      } catch (textError) {
+        // If all else fails, use statusText
+        errorMessage = res.statusText;
+      }
+    }
+    
+    // Create a more descriptive error
+    const statusText = res.status === 413 ? 'Payload Too Large (File size exceeds server limit)' : res.statusText;
+    throw new Error(`Request failed: ${res.status} ${statusText} - ${errorMessage}`);
   }
 }
 
