@@ -614,6 +614,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Toggle track visibility
+  app.patch("/api/admin/tracks/:id/visibility", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid track ID" });
+      }
+      
+      const track = await storage.getAudioTrackById(id);
+      if (!track) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      
+      const isPublic = req.body.isPublic;
+      if (typeof isPublic !== 'boolean') {
+        return res.status(400).json({ message: "isPublic must be a boolean value" });
+      }
+      
+      const updatedTrack = await storage.updateAudioTrack(id, { isPublic });
+      
+      res.status(200).json(updatedTrack);
+    } catch (error) {
+      console.error("Error updating track visibility:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.delete("/api/admin/tracks/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);

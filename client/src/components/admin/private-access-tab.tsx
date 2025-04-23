@@ -26,6 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -183,9 +184,11 @@ export function PrivateAccessTab() {
         </CardHeader>
         <CardContent>
           <div className="mb-6">
-            <FormLabel>Select a Track to Manage Access</FormLabel>
+            <div className="mb-2">
+              <Label htmlFor="track-select">Select a Track to Manage Access</Label>
+            </div>
             <Select onValueChange={handleTrackSelect} value={selectedTrack?.toString() || ""}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="track-select" className="w-full">
                 <SelectValue placeholder="Select a track" />
               </SelectTrigger>
               <SelectContent>
@@ -217,10 +220,10 @@ export function PrivateAccessTab() {
                       name="userId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Select User</FormLabel>
+                          <FormLabel htmlFor="user-select">Select User</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger id="user-select">
                                 <SelectValue placeholder="Select a user" />
                               </SelectTrigger>
                             </FormControl>
