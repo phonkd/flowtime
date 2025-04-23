@@ -1,13 +1,8 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   Table,
   TableBody,
@@ -16,16 +11,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, 
-  Trash, 
-  Link2, 
-  FileAudio, 
+  Trash2, 
   Copy, 
-  CheckCircle2, 
-  XCircle 
+  Check,
+  Link2,
+  ToggleLeft,
+  ToggleRight 
 } from "lucide-react";
 import {
   AlertDialog,
@@ -38,213 +56,344 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
+
+// Schema for shareable link form
+const shareableLinkSchema = z.object({
+  audioTrackId: z.string().min(1, "Track is required"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  expiresAt: z.string().optional(),
+});
+
+type ShareableLinkFormValues = z.infer<typeof shareableLinkSchema>;
 
 export function ShareableLinksTab() {
   const { toast } = useToast();
-  const [selectedLink, setSelectedLink] = useState<any>(null);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
   
-  // Query for shareable links
-  const { data: shareableLinks, isLoading } = useQuery({
-    queryKey: ['/api/admin/shareable-links'],
+  // Fetch shareable links
+  const { data: links, isLoading: isLoadingLinks } = useQuery({
+    queryKey: ['/api/shareable-links'],
   });
-
-  // Delete shareable link mutation
-  const deleteShareableLinkMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/admin/shareable-links/${id}`);
-      if (!response.ok) {
-        throw new Error("Failed to delete shareable link");
-      }
-      return true;
+  
+  // Fetch all tracks
+  const { data: tracks, isLoading: isLoadingTracks } = useQuery({
+    queryKey: ['/api/tracks'],
+  });
+  
+  // Create link mutation
+  const createLinkMutation = useMutation({
+    mutationFn: async (data: ShareableLinkFormValues) => {
+      const formattedData = {
+        audioTrackId: parseInt(data.audioTrackId),
+        name: data.name,
+        expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+      };
+      
+      const res = await apiRequest("POST", "/api/shareable-links", formattedData);
+      return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/shareable-links'] });
-      setConfirmDeleteOpen(false);
-      setSelectedLink(null);
       toast({
-        title: "Link deleted",
-        description: "The shareable link has been deleted successfully.",
+        title: "Success",
+        description: "Shareable link created successfully",
       });
+      queryClient.invalidateQueries({queryKey: ['/api/shareable-links']});
+      form.reset();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error deleting link",
-        description: error.message || "There was an error deleting the link.",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
-
-  // Toggle link active status mutation
-  const toggleLinkActiveMutation = useMutation({
+  
+  // Toggle link active state mutation
+  const toggleLinkMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      const response = await apiRequest("PATCH", `/api/admin/shareable-links/${id}`, { isActive });
-      return response.json();
+      const res = await apiRequest("PUT", `/api/shareable-links/${id}`, { isActive });
+      return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/shareable-links'] });
       toast({
-        title: "Link status updated",
-        description: "The link status has been updated successfully.",
+        title: "Success",
+        description: "Link status updated successfully",
       });
+      queryClient.invalidateQueries({queryKey: ['/api/shareable-links']});
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error updating link status",
-        description: error.message || "There was an error updating the link status.",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
-
-  const handleCopyLink = (linkId: string) => {
-    const shareableUrl = `${window.location.origin}/shared/${linkId}`;
-    navigator.clipboard.writeText(shareableUrl);
+  
+  // Delete link mutation
+  const deleteLinkMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/shareable-links/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Link deleted successfully",
+      });
+      queryClient.invalidateQueries({queryKey: ['/api/shareable-links']});
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Form setup
+  const form = useForm<ShareableLinkFormValues>({
+    resolver: zodResolver(shareableLinkSchema),
+    defaultValues: {
+      audioTrackId: "",
+      name: "",
+      expiresAt: "",
+    },
+  });
+  
+  // Handle form submission
+  const onSubmit = (data: ShareableLinkFormValues) => {
+    createLinkMutation.mutate(data);
+  };
+  
+  // Handle copy link
+  const copyLink = (linkId: string) => {
+    const linkUrl = `${window.location.origin}/shared/${linkId}`;
+    navigator.clipboard.writeText(linkUrl);
+    setCopiedLink(linkId);
+    setTimeout(() => setCopiedLink(null), 2000);
+    
     toast({
-      title: "Link copied",
-      description: "The shareable link has been copied to your clipboard.",
+      title: "Copied",
+      description: "Link copied to clipboard",
     });
   };
-
-  const handleDeleteLink = (link: any) => {
-    setSelectedLink(link);
-    setConfirmDeleteOpen(true);
-  };
-
-  const handleToggleStatus = (link: any) => {
-    toggleLinkActiveMutation.mutate({ 
-      id: link.id, 
-      isActive: !link.isActive 
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Shareable Links</CardTitle>
-        <CardDescription>Manage private shareable links for your audio content</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {shareableLinks && shareableLinks.length > 0 ? (
-          <div className="border rounded-md">
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Create Shareable Link</CardTitle>
+          <CardDescription>
+            Create a link to share an audio track with others. You can set an expiration date or disable the link later.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="audioTrackId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Track</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a track" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingTracks ? (
+                          <div className="flex justify-center items-center py-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : tracks && tracks.length > 0 ? (
+                          tracks.map((track: any) => (
+                            <SelectItem key={track.id} value={track.id.toString()}>
+                              {track.title}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-1 text-sm">No tracks available</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter a descriptive name for this link" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="expiresAt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Expiration Date (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type="datetime-local" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <Button
+                type="submit"
+                disabled={createLinkMutation.isPending}
+              >
+                {createLinkMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Create Link
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Manage Shareable Links</CardTitle>
+          <CardDescription>View, activate/deactivate, or delete shareable links</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingLinks ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : links && links.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Name</TableHead>
                   <TableHead>Track</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Expires</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {shareableLinks.map((link: any) => (
+                {links.map((link: any) => (
                   <TableRow key={link.id}>
-                    <TableCell className="flex items-center gap-2">
-                      <FileAudio className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{link.audioTrack.title}</span>
+                    <TableCell className="font-medium">{link.name}</TableCell>
+                    <TableCell>
+                      {tracks?.find((track: any) => track.id === link.audioTrackId)?.title || 'Unknown'}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(link.createdAt), 'MMM d, yyyy')}
+                      {link.isActive ? (
+                        <Badge className="bg-green-500">Active</Badge>
+                      ) : (
+                        <Badge variant="secondary">Inactive</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
-                      {link.expiresAt 
-                        ? format(new Date(link.expiresAt), 'MMM d, yyyy')
-                        : "Never expires"}
+                      {link.createdAt ? format(new Date(link.createdAt), 'PPP') : '-'}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge 
-                        variant={link.isActive ? "default" : "destructive"}
-                        className="justify-center"
-                      >
-                        {link.isActive ? "Active" : "Inactive"}
-                      </Badge>
+                    <TableCell>
+                      {link.expiresAt ? format(new Date(link.expiresAt), 'PPP') : 'Never'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
-                          onClick={() => handleCopyLink(link.linkId)}
-                          title="Copy Shareable Link"
+                          onClick={() => copyLink(link.linkId)}
+                          title="Copy link"
                         >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant={link.isActive ? "outline" : "default"}
-                          size="icon"
-                          onClick={() => handleToggleStatus(link)}
-                          title={link.isActive ? "Deactivate Link" : "Activate Link"}
-                        >
-                          {link.isActive ? (
-                            <XCircle className="h-4 w-4" />
+                          {copiedLink === link.linkId ? (
+                            <Check className="h-4 w-4 text-green-500" />
                           ) : (
-                            <CheckCircle2 className="h-4 w-4" />
+                            <Copy className="h-4 w-4" />
                           )}
                         </Button>
+                        
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteLink(link)}
-                          className="text-destructive"
-                          title="Delete Link"
+                          onClick={() => 
+                            toggleLinkMutation.mutate({ 
+                              id: link.id, 
+                              isActive: !link.isActive 
+                            })
+                          }
+                          title={link.isActive ? "Deactivate link" : "Activate link"}
                         >
-                          <Trash className="h-4 w-4" />
+                          {link.isActive ? (
+                            <ToggleRight className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <ToggleLeft className="h-4 w-4" />
+                          )}
                         </Button>
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Delete link"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete Shareable Link
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete the link "{link.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteLinkMutation.mutate(link.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {deleteLinkMutation.isPending ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Delete"
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Link2 className="mx-auto h-12 w-12 text-muted-foreground opacity-30" />
-            <h3 className="mt-4 text-lg font-medium">No shareable links found</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Create shareable links from the Tracks tab to give private access to specific audio content.
-            </p>
-          </div>
-        )}
-      </CardContent>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Shareable Link</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this shareable link for "{selectedLink?.audioTrack?.title}"? 
-              This action cannot be undone and anyone with this link will no longer be able to access the content.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteShareableLinkMutation.mutate(selectedLink?.id)}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {deleteShareableLinkMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground flex flex-col items-center">
+              <Link2 className="h-12 w-12 text-muted-foreground mb-4" />
+              <p>No shareable links found. Create your first link using the form above.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

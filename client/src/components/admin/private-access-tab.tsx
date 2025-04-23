@@ -1,13 +1,8 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   Table,
   TableBody,
@@ -16,23 +11,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { 
-  Loader2, 
-  Trash, 
-  UserPlus, 
-  FileAudio,
-  Users
-} from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Trash2, User, Music } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,340 +47,295 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { apiRequest } from "@/lib/queryClient";
 
-const grantAccessSchema = z.object({
-  userId: z.string().min(1, { message: "Please select a user." }),
-  audioTrackId: z.string().min(1, { message: "Please select an audio track." }),
+// Schema for track access form
+const trackAccessSchema = z.object({
+  userId: z.string().min(1, "User is required"),
+  audioTrackId: z.string().min(1, "Audio track is required"),
 });
 
-type GrantAccessFormValues = z.infer<typeof grantAccessSchema>;
+type TrackAccessFormValues = z.infer<typeof trackAccessSchema>;
 
 export function PrivateAccessTab() {
   const { toast } = useToast();
-  const [selectedAccess, setSelectedAccess] = useState<any>(null);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [grantDialogOpen, setGrantDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const [selectedTrack, setSelectedTrack] = useState<number | null>(null);
   
-  // Query for user access permissions
-  const { data: userAccess, isLoading: isAccessLoading } = useQuery({
-    queryKey: ['/api/admin/user-access'],
-  });
-
-  // Query for users
-  const { data: users, isLoading: isUsersLoading } = useQuery({
+  // Fetch all users
+  const { data: users, isLoading: isLoadingUsers } = useQuery({
     queryKey: ['/api/admin/users'],
   });
-
-  // Query for private tracks
-  const { data: tracks, isLoading: isTracksLoading } = useQuery({
-    queryKey: ['/api/admin/tracks'],
+  
+  // Fetch all tracks
+  const { data: tracks, isLoading: isLoadingTracks } = useQuery({
+    queryKey: ['/api/tracks'],
   });
-
-  // Grant user access mutation
+  
+  // Fetch users with access to selected track
+  const { 
+    data: usersWithAccess, 
+    isLoading: isLoadingAccess,
+    refetch: refetchUsersWithAccess 
+  } = useQuery({
+    queryKey: ['/api/track-access', selectedTrack, 'users'],
+    queryFn: async () => {
+      if (!selectedTrack) return [];
+      const res = await fetch(`/api/track-access/${selectedTrack}/users`);
+      if (!res.ok) throw new Error('Failed to fetch users with access');
+      return res.json();
+    },
+    enabled: !!selectedTrack,
+  });
+  
+  // Grant access mutation
   const grantAccessMutation = useMutation({
-    mutationFn: async (values: { userId: number; audioTrackId: number }) => {
-      const response = await apiRequest("POST", "/api/admin/user-access", values);
-      return response.json();
+    mutationFn: async (values: TrackAccessFormValues) => {
+      const data = {
+        userId: parseInt(values.userId),
+        audioTrackId: parseInt(values.audioTrackId),
+      };
+      
+      const res = await apiRequest("POST", "/api/track-access", data);
+      return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/user-access'] });
-      setGrantDialogOpen(false);
       toast({
-        title: "Access granted",
-        description: "User access has been granted successfully.",
+        title: "Success",
+        description: "Access granted successfully",
       });
-      form.reset({
-        userId: "",
-        audioTrackId: "",
-      });
+      refetchUsersWithAccess();
+      form.reset();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error granting access",
-        description: error.message || "There was an error granting user access.",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
-
-  // Revoke user access mutation
+  
+  // Revoke access mutation
   const revokeAccessMutation = useMutation({
     mutationFn: async ({ userId, audioTrackId }: { userId: number; audioTrackId: number }) => {
-      const response = await apiRequest("DELETE", `/api/admin/user-access`, { userId, audioTrackId });
-      if (!response.ok) {
-        throw new Error("Failed to revoke access");
-      }
-      return true;
+      await apiRequest("DELETE", `/api/track-access/${userId}/${audioTrackId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/user-access'] });
-      setConfirmDeleteOpen(false);
-      setSelectedAccess(null);
       toast({
-        title: "Access revoked",
-        description: "User access has been revoked successfully.",
+        title: "Success",
+        description: "Access revoked successfully",
       });
+      refetchUsersWithAccess();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error revoking access",
-        description: error.message || "There was an error revoking user access.",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
-
-  // Form for granting access
-  const form = useForm<GrantAccessFormValues>({
-    resolver: zodResolver(grantAccessSchema),
+  
+  // Form setup
+  const form = useForm<TrackAccessFormValues>({
+    resolver: zodResolver(trackAccessSchema),
     defaultValues: {
       userId: "",
-      audioTrackId: "",
+      audioTrackId: selectedTrack?.toString() || "",
     },
   });
-
-  const onSubmit = (values: GrantAccessFormValues) => {
-    grantAccessMutation.mutate({
-      userId: parseInt(values.userId),
-      audioTrackId: parseInt(values.audioTrackId),
-    });
+  
+  // Update the audioTrackId field when selectedTrack changes
+  React.useEffect(() => {
+    if (selectedTrack) {
+      form.setValue("audioTrackId", selectedTrack.toString());
+    }
+  }, [selectedTrack, form]);
+  
+  // Handle form submission
+  const onSubmit = (values: TrackAccessFormValues) => {
+    grantAccessMutation.mutate(values);
   };
-
-  const handleRevokeAccess = (access: any) => {
-    setSelectedAccess(access);
-    setConfirmDeleteOpen(true);
+  
+  // Handle track selection
+  const handleTrackSelect = (trackId: string) => {
+    setSelectedTrack(parseInt(trackId));
+    form.setValue("audioTrackId", trackId);
   };
-
-  const isLoading = isAccessLoading || isUsersLoading || isTracksLoading;
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Filter tracks to show only private ones
-  const privateTracksOnly = tracks?.filter((track: any) => !track.isPublic) || [];
-
+  
+  // Filter out users that already have access to the selected track
+  const getAvailableUsers = () => {
+    if (!users || !usersWithAccess) return [];
+    
+    const userIdsWithAccess = usersWithAccess.map((user: any) => user.id);
+    return users.filter((user: any) => !userIdsWithAccess.includes(user.id));
+  };
+  
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Private Access</CardTitle>
-          <CardDescription>Manage user access to private audio content</CardDescription>
-        </div>
-        <Dialog open={grantDialogOpen} onOpenChange={setGrantDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-1">
-              <UserPlus className="h-4 w-4" />
-              <span>Grant Access</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Grant User Access</DialogTitle>
-              <DialogDescription>
-                Give a user access to a private audio track.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="userId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>User</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a user" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {users && users.length > 0 ? (
-                            users.map((user: any) => (
-                              <SelectItem key={user.id} value={user.id.toString()}>
-                                {user.username} {user.fullName ? `(${user.fullName})` : ''}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="none" disabled>No users available</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="audioTrackId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Audio Track</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a private track" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {privateTracksOnly && privateTracksOnly.length > 0 ? (
-                            privateTracksOnly.map((track: any) => (
-                              <SelectItem key={track.id} value={track.id.toString()}>
-                                {track.title}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="none" disabled>No private tracks available</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Only private tracks can be assigned for specific user access
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <Button
-                    type="submit"
-                    disabled={grantAccessMutation.isPending || privateTracksOnly.length === 0}
-                  >
-                    {grantAccessMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Grant Access
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        {userAccess && userAccess.length > 0 ? (
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Track</TableHead>
-                  <TableHead>Granted By</TableHead>
-                  <TableHead>Granted On</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {userAccess.map((access: any) => (
-                  <TableRow key={access.id}>
-                    <TableCell className="font-medium">
-                      {access.user.username}
-                    </TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <FileAudio className="h-4 w-4 text-muted-foreground" />
-                      {access.audioTrack.title}
-                    </TableCell>
-                    <TableCell>{access.grantedBy.username}</TableCell>
-                    <TableCell>
-                      {format(new Date(access.grantedAt), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleRevokeAccess(access)}
-                        className="text-destructive"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Manage Private Track Access</CardTitle>
+          <CardDescription>
+            Grant or revoke user access to specific audio tracks
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6">
+            <FormLabel>Select a Track to Manage Access</FormLabel>
+            <Select onValueChange={handleTrackSelect} value={selectedTrack?.toString() || ""}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a track" />
+              </SelectTrigger>
+              <SelectContent>
+                {isLoadingTracks ? (
+                  <div className="flex justify-center items-center py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : tracks && tracks.length > 0 ? (
+                  tracks.map((track: any) => (
+                    <SelectItem key={track.id} value={track.id.toString()}>
+                      {track.title}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-2 py-1 text-sm">No tracks available</div>
+                )}
+              </SelectContent>
+            </Select>
           </div>
-        ) : (
-          <div className="text-center py-8">
-            <Users className="mx-auto h-12 w-12 text-muted-foreground opacity-30" />
-            <h3 className="mt-4 text-lg font-medium">No private access permissions found</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Grant users access to private audio content to see them here.
-            </p>
-            <Button 
-              onClick={() => setGrantDialogOpen(true)} 
-              className="mt-4"
-              disabled={privateTracksOnly.length === 0}
-            >
-              Grant Access
-            </Button>
-            {privateTracksOnly.length === 0 && (
-              <p className="mt-4 text-sm text-muted-foreground">
-                You need to have private tracks before you can grant access.
+          
+          {selectedTrack && (
+            <>
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-4">Grant Access to a User</h3>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="userId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select User</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a user" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {isLoadingUsers ? (
+                                <div className="flex justify-center items-center py-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                </div>
+                              ) : getAvailableUsers().length > 0 ? (
+                                getAvailableUsers().map((user: any) => (
+                                  <SelectItem key={user.id} value={user.id.toString()}>
+                                    {user.username} {user.fullName ? `(${user.fullName})` : ''}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="px-2 py-1 text-sm">No users available</div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <input type="hidden" {...form.register("audioTrackId")} />
+                    <Button
+                      type="submit"
+                      disabled={grantAccessMutation.isPending || !form.formState.isValid}
+                    >
+                      {grantAccessMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Grant Access
+                    </Button>
+                  </form>
+                </Form>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium mb-4">Users with Access</h3>
+                {isLoadingAccess ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : usersWithAccess && usersWithAccess.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Username</TableHead>
+                        <TableHead>Full Name</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usersWithAccess.map((user: any) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.username}</TableCell>
+                          <TableCell>{user.fullName || '-'}</TableCell>
+                          <TableCell className="text-right">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Revoke Access</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to revoke access for {user.username}?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => 
+                                      revokeAccessMutation.mutate({ 
+                                        userId: user.id, 
+                                        audioTrackId: selectedTrack 
+                                      })
+                                    }
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {revokeAccessMutation.isPending ? (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                      "Revoke Access"
+                                    )}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    No users have access to this track yet.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          
+          {!selectedTrack && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Music className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                Select a track from the dropdown above to manage user access.
               </p>
-            )}
-          </div>
-        )}
-      </CardContent>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Revoke Access</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to revoke {selectedAccess?.user.username}'s access to "{selectedAccess?.audioTrack.title}"? 
-              The user will no longer be able to access this audio track.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => revokeAccessMutation.mutate({
-                userId: selectedAccess?.user.id,
-                audioTrackId: selectedAccess?.audioTrack.id
-              })}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {revokeAccessMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Revoke Access
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
