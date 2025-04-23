@@ -12,9 +12,26 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Auth middleware for protected routes
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    return res.status(401).json({ message: "Not authenticated" });
+  };
+  
+  // Admin middleware for admin-only routes
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (req.isAuthenticated() && req.user && (req.user as any).role === 'admin') {
+      return next();
+    }
+    return res.status(403).json({ message: "Forbidden: Admin access required" });
+  };
   
   // Configure multer for audio file uploads
   const audioStorage = multer.diskStorage({
@@ -410,6 +427,367 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     next();
   }, express.static(path.join(process.cwd(), 'public', 'uploads')));
+  
+  // Admin-only API endpoints
+  
+  // Admin User Management API
+  app.get("/api/admin/users", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove passwords from the response
+      const usersWithoutPasswords = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      res.status(200).json(usersWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.put("/api/admin/users/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user (e.g. role, status)
+      const updatedUser = await storage.updateUser(id, req.body);
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Admin Category Management API
+  app.post("/api/admin/categories", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const category = await storage.createCategory(req.body);
+      res.status(201).json(category);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        res.status(400).json({ message: validationError.message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.put("/api/admin/categories/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      
+      const category = await storage.getCategoryById(id);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      const updatedCategory = await storage.updateCategory(id, req.body);
+      res.status(200).json(updatedCategory);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.delete("/api/admin/categories/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      
+      const category = await storage.getCategoryById(id);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      // Check if category has tracks
+      const tracks = await storage.getAudioTracksByCategory(id);
+      if (tracks.length > 0) {
+        return res.status(400).json({ 
+          message: "Cannot delete category with associated tracks",
+          count: tracks.length
+        });
+      }
+      
+      await storage.deleteCategory(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Admin Tag Management API
+  app.post("/api/admin/tags", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const tag = await storage.createTag(req.body);
+      res.status(201).json(tag);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        res.status(400).json({ message: validationError.message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.put("/api/admin/tags/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid tag ID" });
+      }
+      
+      const tag = await storage.getTagById(id);
+      if (!tag) {
+        return res.status(404).json({ message: "Tag not found" });
+      }
+      
+      const updatedTag = await storage.updateTag(id, req.body);
+      res.status(200).json(updatedTag);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.delete("/api/admin/tags/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid tag ID" });
+      }
+      
+      const tag = await storage.getTagById(id);
+      if (!tag) {
+        return res.status(404).json({ message: "Tag not found" });
+      }
+      
+      await storage.deleteTag(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Admin Track Management API
+  app.put("/api/admin/tracks/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid track ID" });
+      }
+      
+      const track = await storage.getAudioTrackById(id);
+      if (!track) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      
+      const updatedTrack = await storage.updateAudioTrack(id, req.body);
+      const trackWithDetails = await storage.getAudioTrackWithDetails(id);
+      
+      res.status(200).json(trackWithDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.delete("/api/admin/tracks/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid track ID" });
+      }
+      
+      const track = await storage.getAudioTrackById(id);
+      if (!track) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      
+      // Delete the track
+      await storage.deleteAudioTrack(id);
+      
+      // Update category count
+      if (track.categoryId) {
+        const category = await storage.getCategoryById(track.categoryId);
+        if (category && category.count > 0) {
+          await storage.updateCategoryCount(track.categoryId, category.count - 1);
+        }
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Shareable Links API
+  app.post("/api/shareable-links", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any).id;
+      const linkData = { 
+        ...req.body,
+        createdById: userId,
+        linkId: crypto.randomUUID().toString(),
+        isActive: true,
+        createdAt: new Date()
+      };
+      
+      const link = await storage.createShareableLink(linkData);
+      res.status(201).json(link);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        res.status(400).json({ message: validationError.message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.get("/api/shareable-links", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any).id;
+      const isAdmin = (req.user as any).role === 'admin';
+      
+      // Admins can see all links, regular users only see their own
+      const links = isAdmin 
+        ? await storage.getAllShareableLinks()
+        : await storage.getUserShareableLinks(userId);
+      
+      res.status(200).json(links);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.put("/api/shareable-links/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid link ID" });
+      }
+      
+      const link = await storage.getShareableLinkById(id);
+      if (!link) {
+        return res.status(404).json({ message: "Link not found" });
+      }
+      
+      const userId = (req.user as any).id;
+      const isAdmin = (req.user as any).role === 'admin';
+      
+      // Only admins or the link creator can update links
+      if (!isAdmin && link.createdById !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      const updatedLink = await storage.updateShareableLink(id, req.body.isActive);
+      res.status(200).json(updatedLink);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.delete("/api/shareable-links/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid link ID" });
+      }
+      
+      const link = await storage.getShareableLinkById(id);
+      if (!link) {
+        return res.status(404).json({ message: "Link not found" });
+      }
+      
+      const userId = (req.user as any).id;
+      const isAdmin = (req.user as any).role === 'admin';
+      
+      // Only admins or the link creator can delete links
+      if (!isAdmin && link.createdById !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      await storage.deleteShareableLink(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // User track access API
+  app.post("/api/track-access", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const grantedById = (req.user as any).id;
+      const accessData = { 
+        ...req.body,
+        grantedById,
+        grantedAt: new Date()
+      };
+      
+      const access = await storage.grantUserAccess(accessData);
+      res.status(201).json(access);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        res.status(400).json({ message: validationError.message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.delete("/api/track-access/:userId/:audioTrackId", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const audioTrackId = parseInt(req.params.audioTrackId);
+      
+      if (isNaN(userId) || isNaN(audioTrackId)) {
+        return res.status(400).json({ message: "Invalid user ID or track ID" });
+      }
+      
+      await storage.revokeUserAccess(userId, audioTrackId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/track-access/:audioTrackId/users", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const audioTrackId = parseInt(req.params.audioTrackId);
+      
+      if (isNaN(audioTrackId)) {
+        return res.status(400).json({ message: "Invalid track ID" });
+      }
+      
+      const users = await storage.getUsersWithAccessToTrack(audioTrackId);
+      
+      // Remove passwords from the response
+      const usersWithoutPasswords = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      
+      res.status(200).json(usersWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   return httpServer;
 }

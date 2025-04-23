@@ -21,6 +21,16 @@ export function Header({ onSearch }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
+  // Get user auth state
+  const { data: user } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  
+  // Check if user is admin
+  const isAdmin = user && user.role === 'admin';
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(searchQuery);
@@ -106,13 +116,36 @@ export function Header({ onSearch }: HeaderProps) {
               </Button>
             </Link>
             
-            {/* Sign in button */}
-            <Link href="/login">
-              <Button className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2">
+            {/* Admin link - only shown to admin users */}
+            {isAdmin && (
+              <Link href="/admin">
+                <Button variant="outline" className="hidden md:flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Admin</span>
+                </Button>
+              </Link>
+            )}
+            
+            {/* Sign in/out button */}
+            {user ? (
+              <Button 
+                className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
+                onClick={async () => {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                  window.location.href = '/';
+                }}
+              >
                 <User className="h-4 w-4" />
-                <span>Sign In</span>
+                <span>Sign Out</span>
               </Button>
-            </Link>
+            ) : (
+              <Link href="/login">
+                <Button className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span>Sign In</span>
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
         
