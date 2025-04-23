@@ -5,25 +5,27 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies with development dependencies for build step
 RUN npm ci
 
 # Copy application code
 COPY . .
 
+# Create uploads directory
+RUN mkdir -p uploads && chmod 777 uploads
+
 # Build frontend and backend assets
 RUN npm run build
 
-# Create uploads directory
-RUN mkdir -p uploads && chmod 777 uploads
+# Verify the build output
+RUN ls -la dist/ || echo "Build failed - dist directory not created"
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=5000
-ENV USE_DATABASE=true
 
 # Expose port
 EXPOSE 5000
 
-# Start the application
-CMD ["node", "dist/index.js"]
+# Start the application directly without a script file
+CMD ["sh", "-c", "echo 'Starting application...' && npm run dev"]

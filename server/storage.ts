@@ -538,10 +538,11 @@ export class MemStorage implements IStorage {
   }
 }
 
-import { db, sql } from "./db";
+import { db } from "./db";
 import { eq, and, like, desc, asc, inArray, or, not, isNull } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
+import { pool } from "./db";
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
@@ -549,7 +550,7 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     const PostgresSessionStore = connectPg(session);
     this.sessionStore = new PostgresSessionStore({ 
-      pool: sql, // Use sql as the pool
+      pool, 
       tableName: 'session',
       createTableIfMissing: true 
     });
