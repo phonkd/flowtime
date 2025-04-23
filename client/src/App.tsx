@@ -19,6 +19,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/category/:id" component={CategoryPage} />
       <Route path="/login" component={Auth} />
+      <Route path="/auth" component={Auth} />
       <Route path="/upload" component={UploadPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/shared/:linkId" component={SharedTrackPage} />
