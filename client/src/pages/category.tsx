@@ -4,7 +4,7 @@ import { useRoute } from "wouter";
 import { Header } from "@/components/ui/header";
 import { Sidebar } from "@/components/ui/sidebar";
 import { AudioGrid } from "@/components/ui/audio-grid";
-import { AudioPlayer } from "@/components/ui/audio-player";
+import { AudioPlayer } from "@/components/ui/audio-player-fixed";
 import { AudioTrackWithDetails, Category } from "@shared/schema";
 
 export default function CategoryPage() {

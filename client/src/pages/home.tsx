@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/ui/header";
 import { Sidebar } from "@/components/ui/sidebar";
 import { AudioGrid } from "@/components/ui/audio-grid";
-import { AudioPlayer } from "@/components/ui/audio-player";
+import { AudioPlayer } from "@/components/ui/audio-player-fixed";
 import { AudioTrackWithDetails, CategoryWithCount } from "@shared/schema";
 
 export default function Home() {
