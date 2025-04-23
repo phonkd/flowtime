@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   # PostgreSQL Database
@@ -20,26 +20,38 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - hypnosis-network
 
   # Node.js Application
   app:
-    image: ghcr.io/phonkd/flowtime:sha-fb0e0a3
+    image: node:18-alpine
     container_name: hypnosis-app
     restart: unless-stopped
+    working_dir: /app
     volumes:
-      - ./public:/app/public
-      - ./uploads:/app/uploads
+      - .:/app
+      - node_modules:/app/node_modules
+    # Use a direct reference to the PostgreSQL host using the service name
     environment:
       NODE_ENV: development
-      PORT: 5000
-      SESSION_SECRET: your_secure_session_secret_key_here
-      USE_DATABASE: true
+      USE_DATABASE: "true"
+      # Important: Format the DATABASE_URL without wss:// to prevent WebSocket connection
       DATABASE_URL: postgresql://hypnosis:hypnosis_password@postgres:5432/hypnosis_db
+      SESSION_SECRET: hypnosis-app-secret-key-2024
     ports:
       - "5000:5000"
     depends_on:
       postgres:
         condition: service_healthy
+    command: npm run dev
+    networks:
+      - hypnosis-network
 
 volumes:
   postgres_data:
+  node_modules:
+
+networks:
+  hypnosis-network:
+    driver: bridge

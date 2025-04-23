@@ -3,8 +3,6 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
-
 // Check if we're using the database (from environment variable)
 const USE_DATABASE = process.env.USE_DATABASE === 'true';
 
@@ -18,9 +16,28 @@ if (USE_DATABASE && !process.env.DATABASE_URL) {
 // Create a dummy pool and DB if we're not using the real database
 let connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
 
-// Fix for Docker: If the connection fails with hypnosis_db, try with hypnosis
-if (USE_DATABASE && connectionString.includes('hypnosis_db')) {
-  console.log('Using DATABASE_URL with hypnosis_db. If this fails, will try with hypnosis instead.');
+// Determine if we're using a WebSocket connection (Neon) or a regular PostgreSQL connection
+// Neon serverless URLs contain "pooler.supabase.com" or similar, but not local/Docker PostgreSQL instances
+const isNeonConnection = connectionString.includes('.neon.') || connectionString.includes('pooler.supabase.com');
+// Additionally, direct connections to containers in docker-compose or K8s should not use WebSockets
+const isDockerOrK8sConnection = connectionString.includes('@postgres:') || 
+                               connectionString.includes('@db:') || 
+                               connectionString.includes('@database:');
+const isWebSocketConnection = isNeonConnection && !isDockerOrK8sConnection;
+
+if (isWebSocketConnection) {
+  // Only set up WebSocket constructor for Neon connections
+  console.log('Using WebSocket connection for Neon Serverless');
+  neonConfig.webSocketConstructor = ws;
+} else {
+  console.log('Using direct PostgreSQL connection');
 }
+
+// Log connection info (without revealing credentials)
+if (USE_DATABASE) {
+  const sanitizedURL = connectionString.replace(/\/\/[^@]+@/, '//****:****@');
+  console.log(`Connecting to database: ${sanitizedURL}`);
+}
+
 export const pool = new Pool({ connectionString });
 export const db = drizzle({ client: pool, schema });
