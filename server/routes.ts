@@ -151,20 +151,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/login", (req: Request, res: Response, next) => {
+    console.log("Login attempt:", req.body.username);
+    
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
+        console.log("Login error:", err);
         return next(err);
       }
       if (!user) {
+        console.log("Login failed:", info.message);
         return res.status(401).json({ message: info.message });
       }
+      
+      console.log("User authenticated, logging in:", user.username);
       req.logIn(user, (err) => {
         if (err) {
+          console.log("Login session error:", err);
           return next(err);
         }
         
         // Remove password from response
         const { password, ...userWithoutPassword } = user;
+        console.log("Login successful for:", user.username);
         
         return res.status(200).json(userWithoutPassword);
       });
