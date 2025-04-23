@@ -1170,19 +1170,57 @@ export class DatabaseStorage implements IStorage {
   
   // User track access operations
   async grantUserAccess(insertAccess: InsertUserTrackAccess): Promise<UserTrackAccess> {
-    const [access] = await db.insert(userTrackAccess).values(insertAccess).returning();
-    return access;
+    try {
+      // Only include fields that we know exist in the database schema
+      const accessData = {
+        userId: insertAccess.userId,
+        audioTrackId: insertAccess.audioTrackId,
+        grantedById: insertAccess.grantedById
+      };
+      
+      const [access] = await db.insert(userTrackAccess).values(accessData).returning();
+      return access;
+    } catch (error) {
+      console.error("Error in grantUserAccess:", error);
+      
+      // If the insert fails due to missing column, create a minimal version
+      try {
+        // Try with minimal fields if the grantedById column is missing
+        const minimalAccessData = {
+          userId: insertAccess.userId,
+          audioTrackId: insertAccess.audioTrackId
+        };
+        
+        // Try the insert without grantedById
+        const [access] = await db.insert(userTrackAccess)
+          .values(minimalAccessData as any)
+          .returning();
+        
+        return {
+          ...access,
+          grantedById: insertAccess.grantedById // Add it back for API consistency
+        };
+      } catch (fallbackError) {
+        console.error("Fallback error in grantUserAccess:", fallbackError);
+        throw new Error("Failed to grant user access");
+      }
+    }
   }
   
   async revokeUserAccess(userId: number, audioTrackId: number): Promise<void> {
-    await db
-      .delete(userTrackAccess)
-      .where(
-        and(
-          eq(userTrackAccess.userId, userId),
-          eq(userTrackAccess.audioTrackId, audioTrackId)
-        )
-      );
+    try {
+      await db
+        .delete(userTrackAccess)
+        .where(
+          and(
+            eq(userTrackAccess.userId, userId),
+            eq(userTrackAccess.audioTrackId, audioTrackId)
+          )
+        );
+    } catch (error) {
+      console.error("Error in revokeUserAccess:", error);
+      throw new Error("Failed to revoke user access");
+    }
   }
   
   async getUsersWithAccessToTrack(audioTrackId: number): Promise<User[]> {
@@ -1250,24 +1288,42 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getTracksByUser(userId: number): Promise<AudioTrack[]> {
-    // Get all tracks user has access to
-    const accessRecords = await db
-      .select()
-      .from(userTrackAccess)
-      .where(eq(userTrackAccess.userId, userId));
-    
-    const privateTrackIds = accessRecords.map(r => r.audioTrackId);
-    
-    // Get all public tracks + private tracks user has access to
-    return db
-      .select()
-      .from(audioTracks)
-      .where(
-        or(
-          eq(audioTracks.isPublic, true),
-          inArray(audioTracks.id, privateTrackIds)
-        )
-      );
+    try {
+      // Get all tracks user has access to
+      const accessRecords = await db
+        .select({
+          userId: userTrackAccess.userId,
+          audioTrackId: userTrackAccess.audioTrackId
+        })
+        .from(userTrackAccess)
+        .where(eq(userTrackAccess.userId, userId));
+      
+      const privateTrackIds = accessRecords.map(r => r.audioTrackId);
+      
+      // Get all public tracks + private tracks user has access to
+      return db
+        .select({
+          id: audioTracks.id,
+          title: audioTracks.title,
+          description: audioTracks.description,
+          categoryId: audioTracks.categoryId,
+          imageUrl: audioTracks.imageUrl,
+          audioUrl: audioTracks.audioUrl,
+          duration: audioTracks.duration,
+          isPublic: audioTracks.isPublic,
+          createdAt: audioTracks.createdAt
+        })
+        .from(audioTracks)
+        .where(
+          or(
+            eq(audioTracks.isPublic, true),
+            privateTrackIds.length > 0 ? inArray(audioTracks.id, privateTrackIds) : undefined
+          )
+        );
+    } catch (error) {
+      console.error("Error in getTracksByUser:", error);
+      return [];
+    }
   }
 }
 

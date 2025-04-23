@@ -81,6 +81,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         "id" SERIAL PRIMARY KEY,
         "user_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
         "audio_track_id" INTEGER NOT NULL REFERENCES "audio_tracks"("id") ON DELETE CASCADE,
+        "granted_by_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
         "granted_at" TIMESTAMP NOT NULL DEFAULT NOW(),
         UNIQUE("user_id", "audio_track_id")
     );
