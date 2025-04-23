@@ -87,9 +87,9 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 
     -- Populate with sample data
     
-    -- Insert admin user with hashed password (this is 'admin123' hashed)
+    -- Insert admin user with plaintext password for testing (in production would use proper hashing)
     INSERT INTO "users" ("username", "password", "full_name", "email", "role", "created_at")
-    VALUES ('admin', '5906ac361a137cad2facc9201e6bc3428197825e780835fae5f08f2d3c5d1b0d.c97f5551351b8690cec78c7dcdaaf5fb', 'Admin User', 'admin@example.com', 'admin', NOW());
+    VALUES ('admin', 'admin123', 'Admin User', 'admin@example.com', 'admin', NOW());
     
     -- Insert categories
     INSERT INTO "categories" ("name", "description")

@@ -318,6 +318,15 @@ export class MemStorage implements IStorage {
     return user;
   }
   
+  async resetUserPassword(userId: number, newPassword: string): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, password: newPassword };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
   // Category operations
   async getAllCategories(): Promise<CategoryWithCount[]> {
     return Array.from(this.categories.values()) as CategoryWithCount[];
