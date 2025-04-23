@@ -831,11 +831,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Track not found" });
       }
       
+      // Capture categoryId if it's changing
+      const newCategoryId = req.body.categoryId || track.categoryId;
+      
+      // Check if we need to update imageUrl from category if not explicitly provided
+      if (!req.body.imageUrl && (req.body.categoryId || !track.imageUrl)) {
+        const category = await storage.getCategoryById(newCategoryId);
+        if (category && category.imageUrl) {
+          req.body.imageUrl = category.imageUrl;
+        }
+      }
+      
       const updatedTrack = await storage.updateAudioTrack(id, req.body);
       const trackWithDetails = await storage.getAudioTrackWithDetails(id);
       
       res.status(200).json(trackWithDetails);
     } catch (error) {
+      console.error("Error updating track:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
