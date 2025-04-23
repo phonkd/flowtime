@@ -59,7 +59,7 @@ export default function CategoryPage() {
         </aside>
         
         {/* Main content */}
-        <main className="flex-grow overflow-y-auto pb-20">
+        <main className="flex-grow overflow-y-auto pb-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {/* Category header */}
             <div className="mb-6">
