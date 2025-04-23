@@ -3,6 +3,7 @@ import * as schema from "@shared/schema";
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { eq } from 'drizzle-orm/expressions';
+import { sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 
@@ -215,10 +216,10 @@ export async function initializeDatabase(): Promise<void> {
     }
     
     // Now check if we need to seed data
-    const userCountResult = await db.execute(db.select().from(schema.users).count());
-    const userCount = userCountResult[0]?.count || 0;
+    const userCountResult = await db.select({ count: sql`count(*)` }).from(schema.users);
+    const userCount = Number(userCountResult[0]?.count || '0');
     
-    if (parseInt(userCount as string, 10) > 0) {
+    if (userCount > 0) {
       console.log('Database already contains users, skipping data seeding.');
       return;
     }
@@ -331,11 +332,11 @@ export async function initializeDatabase(): Promise<void> {
     
     // 6. Update category counts
     for (const category of categories) {
-      const countResult = await db.execute(db.select().from(schema.audioTracks)
-        .where(eq(schema.audioTracks.categoryId, category.id))
-        .count());
+      const countResult = await db.select({ count: sql`count(*)` })
+        .from(schema.audioTracks)
+        .where(eq(schema.audioTracks.categoryId, category.id));
       
-      const trackCount = parseInt(countResult[0]?.count as string || '0', 10);
+      const trackCount = Number(countResult[0]?.count || '0');
       
       await db.update(schema.categories)
         .set({ count: trackCount })
