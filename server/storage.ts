@@ -150,6 +150,7 @@ export class MemStorage implements IStorage {
       id: this.currentCategoryId++,
       name: "Relaxation", 
       description: "Peaceful guided meditations with calming sounds",
+      imageUrl: null,
       count: 0
     };
     this.categories.set(relaxation.id, relaxation);
@@ -159,6 +160,7 @@ export class MemStorage implements IStorage {
       id: this.currentCategoryId++,
       name: "Confidence", 
       description: "Build lasting confidence and self-esteem",
+      imageUrl: null,
       count: 0
     };
     this.categories.set(confidence.id, confidence);
@@ -168,6 +170,7 @@ export class MemStorage implements IStorage {
       id: this.currentCategoryId++,
       name: "Sleep", 
       description: "Fall asleep faster with gentle voice guidance",
+      imageUrl: null,
       count: 0
     };
     this.categories.set(sleep.id, sleep);
@@ -177,6 +180,7 @@ export class MemStorage implements IStorage {
       id: this.currentCategoryId++,
       name: "Stress Relief", 
       description: "Release stress and find inner calm",
+      imageUrl: null,
       count: 0
     };
     this.categories.set(stress.id, stress);

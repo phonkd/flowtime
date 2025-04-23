@@ -61,11 +61,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
   
+  // Image storage configuration
+  const imageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = 'public/uploads/images';
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      // Generate a unique filename with timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, uniqueSuffix + ext);
+    }
+  });
+  
+  // Filter to accept only image files
+  const imageFileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only image files are allowed.'));
+    }
+  };
+  
   const uploadAudio = multer({ 
     storage: audioStorage,
     fileFilter: audioFileFilter,
     limits: {
       fileSize: 150 * 1024 * 1024, // 150MB max file size
+    }
+  });
+  
+  const uploadImage = multer({
+    storage: imageStorage,
+    fileFilter: imageFileFilter,
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB max file size
     }
   });
 
@@ -418,6 +454,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Audio file upload route
+  // Image upload endpoint
+  app.post("/api/uploads/image", requireAuth, uploadImage.single('imageFile'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file uploaded" });
+      }
+      
+      // Create file URL (relative to server)
+      const imageUrl = `/uploads/images/${req.file.filename}`;
+      
+      res.status(200).json({ 
+        url: imageUrl,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/uploads/audio", uploadAudio.single('audioFile'), async (req: Request, res: Response) => {
     // Authentication is optional for demo purposes
     // In a production app, you would require authentication
