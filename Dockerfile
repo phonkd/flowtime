@@ -25,4 +25,4 @@ ENV PORT=5000
 EXPOSE 5000
 
 # Start application
-CMD ["node", "server/index.js"]
+CMD ["node", "dist/index.js"]
