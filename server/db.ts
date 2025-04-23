@@ -1,30 +1,28 @@
 import { Pool } from 'pg';
 import * as schema from "@shared/schema";
-import { drizzle as createDrizzle } from 'drizzle-orm/node-postgres';
-import { neonConfig } from '@neondatabase/serverless';
-import ws from 'ws';
-
-// Configure WebSocket for Neon serverless
-neonConfig.webSocketConstructor = ws;
+import { drizzle } from 'drizzle-orm/node-postgres';
 
 // Check if database should be used
 const USE_DATABASE = process.env.USE_DATABASE === 'true';
 console.log('USE_DATABASE setting:', USE_DATABASE);
 
-// Create a database connection pool
+// Create PostgreSQL connection pool 
 let pool: Pool;
 
 if (USE_DATABASE) {
   try {
-    console.log('Connecting to Neon PostgreSQL database...');
+    console.log('Connecting to standard PostgreSQL database...');
     
-    // Create connection config object
+    // Create connection config object for Docker setup
     const connectionConfig = {
-      connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false // Required for some PostgreSQL providers
-      }
+      user: process.env.POSTGRES_USER || 'hypnosis',
+      password: process.env.POSTGRES_PASSWORD || 'hypnosis_password',
+      host: process.env.POSTGRES_HOST || 'postgres', // Docker service name
+      port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
+      database: process.env.POSTGRES_DB || 'hypnosis_db'
     };
+    
+    console.log(`Database config: ${connectionConfig.host}:${connectionConfig.port}/${connectionConfig.database}`);
     
     // Create the pool instance
     pool = new Pool(connectionConfig);
@@ -62,7 +60,7 @@ else {
 export { pool };
 
 // Create and export the Drizzle ORM instance
-export const db = createDrizzle(pool, { schema });
+export const db = drizzle(pool, { schema });
 
 // Health check function to test database connection
 export async function checkDatabaseConnection(): Promise<boolean> {
