@@ -4,3 +4,18 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Nix-specific files
+result
+result-*
+.direnv/
+.devenv/
+.pre-commit-config.yaml
+.envrc
+.env
+.env.*
+*.sqlite
+
+# Flake outputs
+.std*
+flake-lock.json
