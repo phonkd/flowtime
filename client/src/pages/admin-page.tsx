@@ -34,7 +34,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="container py-8 bg-white min-h-screen">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
