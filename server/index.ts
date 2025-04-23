@@ -2,9 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from 'dotenv';
+import { checkDatabaseConnection } from './db';
 
 // Load environment variables from .env file
 dotenv.config();
+
+// Parse boolean environment variables
+const USE_DATABASE = process.env.USE_DATABASE === 'true';
 
 // Log environment variables for debugging
 console.log('Environment variables loaded:');
@@ -47,6 +51,23 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Check database connection if database is enabled
+  if (USE_DATABASE) {
+    try {
+      const isDbConnected = await checkDatabaseConnection();
+      if (isDbConnected) {
+        console.log('✅ Successfully connected to the PostgreSQL database');
+      } else {
+        console.warn('⚠️ Could not establish connection to the database. Some features may not work properly.');
+      }
+    } catch (error) {
+      console.error('❌ Error checking database connection:', error);
+      console.warn('⚠️ Continuing startup, but database features may not work.');
+    }
+  } else {
+    console.log('ℹ️ Database usage is disabled, using in-memory storage');
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
