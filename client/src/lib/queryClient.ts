@@ -32,41 +32,44 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  url: string,
-  options?: RequestInit,
+  method: string,
+  url: string, 
+  data?: any
 ): Promise<Response> {
   // Default options
-  const defaultOptions: RequestInit = {
-    method: 'GET',
+  const options: RequestInit = {
+    method,
     credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+    }
   };
 
-  // Merge options with defaults
-  const mergedOptions = { ...defaultOptions, ...options };
-  
-  // Handle JSON data (if not FormData)
-  if (mergedOptions.body && !(mergedOptions.body instanceof FormData)) {
-    mergedOptions.headers = {
-      ...mergedOptions.headers,
-      'Content-Type': 'application/json',
-    };
-    
-    if (typeof mergedOptions.body !== 'string') {
-      mergedOptions.body = JSON.stringify(mergedOptions.body);
-    }
-  }
-  
-  // Don't set Content-Type for FormData - browser will set it with boundary
-  if (mergedOptions.body instanceof FormData && mergedOptions.headers) {
-    const headers = mergedOptions.headers as Record<string, string>;
-    if (headers['Content-Type']) {
-      delete headers['Content-Type'];
+  // Add body for non-GET requests with data
+  if (method !== 'GET' && data) {
+    if (data instanceof FormData) {
+      // For FormData, don't set Content-Type as browser will set it with boundary
+      options.body = data;
+    } else {
+      // For JSON data
+      options.headers = {
+        ...options.headers,
+        'Content-Type': 'application/json',
+      };
+      options.body = JSON.stringify(data);
     }
   }
 
-  const res = await fetch(url, mergedOptions);
-  await throwIfResNotOk(res);
-  return res;
+  console.log(`API Request: ${method} ${url}`, data ? 'With data' : 'No data');
+  
+  try {
+    const res = await fetch(url, options);
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error(`API Error: ${method} ${url}`, error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

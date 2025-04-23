@@ -58,12 +58,11 @@ export default function Auth() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormValues) => {
+      console.log("Login with:", data);
       const res = await apiRequest("POST", "/api/auth/login", data);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Login failed");
-      }
-      return res.json();
+      const userData = await res.json();
+      console.log("Login response:", userData);
+      return userData;
     },
     onSuccess: (data) => {
       toast({
@@ -80,6 +79,7 @@ export default function Auth() {
       }
     },
     onError: (error: Error) => {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error.message,
@@ -91,12 +91,11 @@ export default function Auth() {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormValues) => {
+      console.log("Registering with:", data);
       const res = await apiRequest("POST", "/api/auth/register", data);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Registration failed");
-      }
-      return res.json();
+      const userData = await res.json();
+      console.log("Registration response:", userData);
+      return userData;
     },
     onSuccess: (data) => {
       toast({
@@ -110,6 +109,7 @@ export default function Auth() {
       });
     },
     onError: (error: Error) => {
+      console.error("Registration error:", error);
       toast({
         title: "Registration failed",
         description: error.message,
