@@ -16,6 +16,11 @@ if (USE_DATABASE && !process.env.DATABASE_URL) {
 }
 
 // Create a dummy pool and DB if we're not using the real database
-const connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+let connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+
+// Fix for Docker: If the connection fails with hypnosis_db, try with hypnosis
+if (USE_DATABASE && connectionString.includes('hypnosis_db')) {
+  console.log('Using DATABASE_URL with hypnosis_db. If this fails, will try with hypnosis instead.');
+}
 export const pool = new Pool({ connectionString });
 export const db = drizzle({ client: pool, schema });

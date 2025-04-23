@@ -52,7 +52,7 @@ export function AudioCard({ track }: AudioCardProps) {
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer" onClick={handlePlayClick}>
       <div className="relative">
-        <div className="aspect-video bg-neutral-100">
+        <div className="aspect-video bg-muted">
           <img 
             src={track.imageUrl} 
             alt={track.title} 
@@ -69,15 +69,15 @@ export function AudioCard({ track }: AudioCardProps) {
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h3 className="font-medium text-neutral-900">{track.title}</h3>
-            <p className="text-sm text-neutral-600 opacity-75">{track.description}</p>
+            <h3 className="font-medium text-foreground">{track.title}</h3>
+            <p className="text-sm text-muted-foreground">{track.description}</p>
           </div>
           <div className="flex gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={handleAddToQueue}
-              className="flex-shrink-0 text-neutral-600 hover:text-primary"
+              className="flex-shrink-0 text-muted-foreground hover:text-primary"
               aria-label="Add to queue"
             >
               <Plus className="h-5 w-5" />
@@ -104,14 +104,14 @@ export function AudioCard({ track }: AudioCardProps) {
           {track.tags.map((tag) => (
             <span 
               key={tag.id} 
-              className="px-2 py-0.5 bg-neutral-100 text-neutral-700 text-xs rounded-full"
+              className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full"
             >
               {tag.name}
             </span>
           ))}
         </div>
         <div>
-          <div className="h-1 bg-neutral-200 rounded-sm overflow-hidden">
+          <div className="h-1 bg-muted rounded-sm overflow-hidden">
             <div 
               className={cn(
                 "h-full bg-primary rounded-sm",
@@ -121,8 +121,8 @@ export function AudioCard({ track }: AudioCardProps) {
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-neutral-600">{currentTime}</span>
-            <span className="text-xs text-neutral-600">{totalTime}</span>
+            <span className="text-xs text-muted-foreground">{currentTime}</span>
+            <span className="text-xs text-muted-foreground">{totalTime}</span>
           </div>
         </div>
       </CardContent>
