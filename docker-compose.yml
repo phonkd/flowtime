@@ -35,6 +35,9 @@ services:
       -c work_mem=4MB
       -c min_wal_size=1GB
       -c max_wal_size=4GB
+      -c listen_addresses='*'
+      -c log_connections=on
+      -c log_disconnections=on
 
   # Node.js Application
   app:

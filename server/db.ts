@@ -111,8 +111,8 @@ export async function checkDatabaseConnection(): Promise<boolean> {
       } finally {
         client.release();
       }
-    } catch (error) {
-      console.error(`Database connection attempt failed (${retries} retries left):`, error.message);
+    } catch (error: any) {
+      console.error(`Database connection attempt failed (${retries} retries left):`, error.message || String(error));
       retries--;
       
       if (retries > 0) {
