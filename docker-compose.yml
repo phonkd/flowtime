@@ -30,10 +30,9 @@ services:
     volumes:
       - ./public:/app/public
       - ./uploads:/app/uploads
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://hypnosis:hypnosis_password@postgres:5432/hypnosis_db
-      SESSION_SECRET: your_secure_session_secret_replace_this_in_production
+    # Use environment variables from .env file
+    env_file:
+      - .env
     ports:
       - "5000:5000"
     depends_on:
