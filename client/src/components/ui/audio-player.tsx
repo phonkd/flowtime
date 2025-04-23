@@ -21,26 +21,20 @@ export function AudioPlayer() {
   const [showPlaybackOptions, setShowPlaybackOptions] = useState(false);
   const [loop, setLoop] = useState(false);
   
-  // Return null if no track is selected
-  if (!currentTrack) {
-    return null;
-  }
-  
-  const initialProgress = currentTrack.progress?.progress || 0;
-  
+  // Move the useAudio hook before any conditional returns
   const { 
-    playing,
-    formattedCurrentTime,
-    formattedDuration,
-    progressPercent,
-    togglePlay,
-    seekTo,
-    volume,
-    setVolumeLevel
-  } = useAudio({
+    playing = false,
+    formattedCurrentTime = "0:00",
+    formattedDuration = "0:00",
+    progressPercent = 0,
+    togglePlay = () => {},
+    seekTo = () => {},
+    volume = 1,
+    setVolumeLevel = () => {}
+  } = useAudio(currentTrack ? {
     src: currentTrack.audioUrl,
     trackId: currentTrack.id,
-    initialProgress,
+    initialProgress: currentTrack.progress?.progress || 0,
     onEnded: () => {
       if (loop) {
         // Restart the track if loop is enabled
@@ -51,7 +45,17 @@ export function AudioPlayer() {
         nextTrack();
       }
     }
+  } : {
+    src: "",
+    trackId: 0,
+    initialProgress: 0,
+    onEnded: () => {}
   });
+  
+  // Return null if no track is selected
+  if (!currentTrack) {
+    return null;
+  }
   
   // Sync playing state with context
   React.useEffect(() => {

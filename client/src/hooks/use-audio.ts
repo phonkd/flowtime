@@ -25,6 +25,12 @@ export const useAudio = ({ src, trackId, initialProgress = 0, onEnded }: UseAudi
   
   // Setup audio element
   useEffect(() => {
+    // Skip if no valid source is provided
+    if (!src) {
+      setLoading(false);
+      return;
+    }
+    
     const audio = new Audio(src);
     audioRef.current = audio;
     
@@ -133,13 +139,17 @@ export const useAudio = ({ src, trackId, initialProgress = 0, onEnded }: UseAudi
   
   // Save progress to the server
   const saveProgress = async () => {
-    if (!audioRef.current) return;
+    // Skip if no valid audio reference or track ID is invalid
+    if (!audioRef.current || trackId <= 0) return;
     
     try {
-      await apiRequest('POST', '/api/progress', {
-        audioTrackId: trackId,
-        progress: Math.floor(audioRef.current.currentTime),
-        completed: audioRef.current.currentTime >= audioRef.current.duration
+      await apiRequest('/api/progress', {
+        method: 'POST',
+        body: {
+          audioTrackId: trackId,
+          progress: Math.floor(audioRef.current.currentTime),
+          completed: audioRef.current.currentTime >= audioRef.current.duration
+        }
       });
     } catch (error) {
       console.error('Error saving progress:', error);
