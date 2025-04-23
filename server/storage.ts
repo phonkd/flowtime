@@ -1174,7 +1174,9 @@ Object.assign(MemStorage.prototype, {
 });
 
 // Choose storage implementation based on environment variable
-const USE_DATABASE = process.env.USE_DATABASE === 'true';
+// Convert string 'true' to boolean true
+const USE_DATABASE = process.env.USE_DATABASE === 'true' || process.env.USE_DATABASE === true;
+console.log('USE_DATABASE value:', process.env.USE_DATABASE, 'type:', typeof process.env.USE_DATABASE);
 export const storage = USE_DATABASE ? new DatabaseStorage() : new MemStorage();
 
 console.log(`Using ${USE_DATABASE ? 'DatabaseStorage' : 'MemStorage'} for data persistence`);

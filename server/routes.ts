@@ -1,6 +1,6 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { createServer, type Server } from "http";
-// Import storage after environment variables have been loaded in index.ts
+import { storage } from "./storage";
 import { insertUserSchema, insertUserProgressSchema, insertAudioTrackSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -88,6 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.session());
 
   // Configure passport local strategy
+  
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
