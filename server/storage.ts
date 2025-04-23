@@ -141,179 +141,82 @@ export class MemStorage implements IStorage {
       password: "admin123",  // Simple password for testing
       role: "admin",
       fullName: "Admin User",
-      email: "admin@example.com"
+      email: "admin@example.com",
+      createdAt: new Date()
     };
     this.users.set(adminUser.id, adminUser);
     console.log("Created admin user:", adminUser.username);
     
-    // Create categories directly without async
-    const relaxation: Category = { 
+    // Create single category directly without async
+    const hypnosisCategory: Category = { 
       id: this.currentCategoryId++,
-      name: "Relaxation", 
-      description: "Peaceful guided meditations with calming sounds",
+      name: "Hypnosis", 
+      description: "Guided hypnosis sessions for relaxation and personal growth",
       imageUrl: null,
       count: 0
     };
-    this.categories.set(relaxation.id, relaxation);
-    console.log("Created relaxation category:", relaxation);
+    this.categories.set(hypnosisCategory.id, hypnosisCategory);
+    console.log("Created hypnosis category:", hypnosisCategory);
     
-    const confidence: Category = { 
-      id: this.currentCategoryId++,
-      name: "Confidence", 
-      description: "Build lasting confidence and self-esteem",
-      imageUrl: null,
-      count: 0
-    };
-    this.categories.set(confidence.id, confidence);
-    console.log("Created confidence category:", confidence);
+    // Create single tag directly
+    const hypnosisTag: Tag = { id: this.currentTagId++, name: "Hypnosis" };
+    this.tags.set(hypnosisTag.id, hypnosisTag);
     
-    const sleep: Category = { 
-      id: this.currentCategoryId++,
-      name: "Sleep", 
-      description: "Fall asleep faster with gentle voice guidance",
-      imageUrl: null,
-      count: 0
-    };
-    this.categories.set(sleep.id, sleep);
-    console.log("Created sleep category:", sleep);
-    
-    const stress: Category = { 
-      id: this.currentCategoryId++,
-      name: "Stress Relief", 
-      description: "Release stress and find inner calm",
-      imageUrl: null,
-      count: 0
-    };
-    this.categories.set(stress.id, stress);
-    console.log("Created stress category:", stress);
-    
-    // Create tags directly
-    const guided: Tag = { id: this.currentTagId++, name: "Guided" };
-    this.tags.set(guided.id, guided);
-    
-    const deepTrance: Tag = { id: this.currentTagId++, name: "Deep trance" };
-    this.tags.set(deepTrance.id, deepTrance);
-    
-    const beginner: Tag = { id: this.currentTagId++, name: "Beginner" };
-    this.tags.set(beginner.id, beginner);
-    
-    const backgroundMusic: Tag = { id: this.currentTagId++, name: "Background music" };
-    this.tags.set(backgroundMusic.id, backgroundMusic);
-    
-    const motivation: Tag = { id: this.currentTagId++, name: "Motivation" };
-    this.tags.set(motivation.id, motivation);
-    
-    const anxiety: Tag = { id: this.currentTagId++, name: "Anxiety" };
-    this.tags.set(anxiety.id, anxiety);
-    
-    const natureSounds: Tag = { id: this.currentTagId++, name: "Nature Sounds" };
-    this.tags.set(natureSounds.id, natureSounds);
-    
-    const longSession: Tag = { id: this.currentTagId++, name: "Long Session" };
-    this.tags.set(longSession.id, longSession);
-    
-    // Create audio tracks directly
+    // Create demo tracks for the Hypnosis category
     const track1: AudioTrack = {
       id: this.currentAudioTrackId++,
-      title: "Deep Relaxation Journey",
-      description: "Peaceful guided meditation with ocean sounds",
-      categoryId: relaxation.id,
-      imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      title: "Deep Relaxation Hypnosis",
+      description: "Peaceful guided hypnosis with ocean sounds",
+      categoryId: hypnosisCategory.id,
+      imageUrl: hypnosisCategory.imageUrl || "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
       audioUrl: "/audio/relaxation_journey.mp3",
-      duration: 1215 // 20:15
+      duration: 1215, // 20:15
+      createdAt: new Date(),
+      isPublic: true
     };
     this.audioTracks.set(track1.id, track1);
     
     const track2: AudioTrack = {
       id: this.currentAudioTrackId++,
-      title: "Peaceful Sleep Induction",
+      title: "Sleep Induction Hypnotherapy",
       description: "Fall asleep faster with gentle voice guidance",
-      categoryId: sleep.id,
-      imageUrl: "https://images.unsplash.com/photo-1518112166137-85f9979a43aa?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      categoryId: hypnosisCategory.id,
+      imageUrl: hypnosisCategory.imageUrl || "https://images.unsplash.com/photo-1518112166137-85f9979a43aa?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
       audioUrl: "/audio/sleep_induction.mp3",
-      duration: 1965 // 32:45
+      duration: 1965, // 32:45
+      createdAt: new Date(),
+      isPublic: true
     };
     this.audioTracks.set(track2.id, track2);
     
     const track3: AudioTrack = {
       id: this.currentAudioTrackId++,
-      title: "Self-Confidence Boost",
+      title: "Confidence Hypnosis",
       description: "Build lasting confidence and self-esteem",
-      categoryId: confidence.id,
-      imageUrl: "https://images.unsplash.com/photo-1534859108275-a3a6f23619fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      categoryId: hypnosisCategory.id,
+      imageUrl: hypnosisCategory.imageUrl || "https://images.unsplash.com/photo-1534859108275-a3a6f23619fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
       audioUrl: "/audio/confidence_boost.mp3",
-      duration: 930 // 15:30
+      duration: 930, // 15:30
+      createdAt: new Date(),
+      isPublic: false
     };
     this.audioTracks.set(track3.id, track3);
     
-    const track4: AudioTrack = {
-      id: this.currentAudioTrackId++,
-      title: "Anxiety Reduction",
-      description: "Release stress and find inner calm",
-      categoryId: stress.id,
-      imageUrl: "https://images.unsplash.com/photo-1476611338391-6f395a0ebc7b?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-      audioUrl: "/audio/anxiety_reduction.mp3",
-      duration: 1100 // 18:20
-    };
-    this.audioTracks.set(track4.id, track4);
-    
-    const track5: AudioTrack = {
-      id: this.currentAudioTrackId++,
-      title: "Rainy Day Relaxation",
-      description: "Gentle rain sounds with calming guidance",
-      categoryId: relaxation.id,
-      imageUrl: "https://images.unsplash.com/photo-1529693662653-9d480530a697?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-      audioUrl: "/audio/rainy_day.mp3",
-      duration: 1510 // 25:10
-    };
-    this.audioTracks.set(track5.id, track5);
-    
-    const track6: AudioTrack = {
-      id: this.currentAudioTrackId++,
-      title: "Deep Sleep Journey",
-      description: "Extended sleep hypnosis for insomnia",
-      categoryId: sleep.id,
-      imageUrl: "https://images.unsplash.com/photo-1502139214982-d0ad755818d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-      audioUrl: "/audio/deep_sleep.mp3",
-      duration: 2700 // 45:00
-    };
-    this.audioTracks.set(track6.id, track6);
-    
-    // Add tags to audio tracks directly
+    // Add the Hypnosis tag to all tracks
     const addTag = (audioTrackId: number, tagId: number) => {
       const id = this.currentAudioTrackTagId++;
       const audioTrackTag: AudioTrackTag = { id, audioTrackId, tagId };
       this.audioTrackTags.set(id, audioTrackTag);
     };
     
-    addTag(track1.id, guided.id);
-    addTag(track1.id, relaxation.id);
+    // Add the hypnosis tag to all tracks
+    addTag(track1.id, hypnosisTag.id);
+    addTag(track2.id, hypnosisTag.id);
+    addTag(track3.id, hypnosisTag.id);
     
-    addTag(track2.id, sleep.id);
-    addTag(track2.id, deepTrance.id);
-    
-    addTag(track3.id, confidence.id);
-    addTag(track3.id, motivation.id);
-    
-    addTag(track4.id, stress.id);
-    addTag(track4.id, anxiety.id);
-    
-    addTag(track5.id, relaxation.id);
-    addTag(track5.id, natureSounds.id);
-    
-    addTag(track6.id, sleep.id);
-    addTag(track6.id, longSession.id);
-    
-    // Update category counts directly
-    relaxation.count = 2;
-    confidence.count = 1;
-    sleep.count = 2;
-    stress.count = 1;
-    
-    this.categories.set(relaxation.id, relaxation);
-    this.categories.set(confidence.id, confidence);
-    this.categories.set(sleep.id, sleep);
-    this.categories.set(stress.id, stress);
+    // Update category count directly
+    hypnosisCategory.count = 3;
+    this.categories.set(hypnosisCategory.id, hypnosisCategory);
   }
   
   // User operations
@@ -329,7 +232,11 @@ export class MemStorage implements IStorage {
   
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: new Date() 
+    };
     this.users.set(id, user);
     return user;
   }
@@ -500,7 +407,12 @@ export class MemStorage implements IStorage {
   
   async createAudioTrack(insertTrack: InsertAudioTrack): Promise<AudioTrack> {
     const id = this.currentAudioTrackId++;
-    const track: AudioTrack = { ...insertTrack, id };
+    const track: AudioTrack = { 
+      ...insertTrack, 
+      id, 
+      createdAt: new Date(), 
+      isPublic: insertTrack.isPublic !== undefined ? insertTrack.isPublic : false 
+    };
     this.audioTracks.set(id, track);
     return track;
   }
@@ -577,7 +489,9 @@ export class MemStorage implements IStorage {
     
     const progress: UserProgress = { 
       ...insertProgress, 
-      id
+      id,
+      completed: insertProgress.completed !== undefined ? insertProgress.completed : null,
+      updatedAt: new Date()
     };
     
     this.userProgress.set(key, progress);
