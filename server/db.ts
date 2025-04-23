@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import * as schema from "@shared/schema";
-import { drizzle } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
 
 // Check if database should be used
 const USE_DATABASE = process.env.USE_DATABASE === 'true';
@@ -83,7 +83,7 @@ export const pool = new Pool({
 });
 
 // Create the drizzle db instance
-export const db = drizzle.drizzle(pool, { schema });
+export const db = drizzle(pool, { schema });
 
 // Health check function
 export async function checkDatabaseConnection(): Promise<boolean> {
