@@ -573,8 +573,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate relative path for audio URL
       const audioUrl = `/uploads/audio/${path.basename(req.file.path)}`;
       
-      // Create placeholder image URL if not provided
-      const imageUrl = req.body.imageUrl || "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80";
+      // Get category to potentially use its image and update count
+      const categoryObj = await storage.getCategoryById(categoryIdNum);
+      
+      // Use the category's image if available, otherwise use the provided image or null
+      const imageUrl = req.body.imageUrl || 
+                        (categoryObj?.imageUrl) ||
+                        null;
       
       // Create audio track in database
       const trackData = {
@@ -601,9 +606,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update category count
-      const category = await storage.getCategoryById(categoryIdNum);
-      if (category) {
-        await storage.updateCategoryCount(categoryIdNum, category.count + 1);
+      if (categoryObj) {
+        await storage.updateCategoryCount(categoryIdNum, categoryObj.count + 1);
       }
       
       // Return the created audio track with details
