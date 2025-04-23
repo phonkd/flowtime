@@ -1,8 +1,8 @@
 version: '3.8'
 
 # Self-contained Docker Compose for Hypnosis App
-# This version doesn't require any external files from the repository
-# All necessary scripts are embedded in the Dockerfile
+# This can be used as a standalone file without the rest of the repository
+# Just place it in a directory and run: docker-compose -f docker-compose.standalone.yml up -d
 
 services:
   # PostgreSQL Database
@@ -12,7 +12,6 @@ services:
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Use the init script from the app container
       - hypnosis_init:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_USER: hypnosis
@@ -44,46 +43,36 @@ services:
       -c log_connections=on
       -c log_disconnections=on
 
-  # Init container - copy initialization scripts to shared volume for Postgres
-  # This is a one-time init container that prepares the init scripts
-  init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: hypnosis-init
-    volumes:
-      - hypnosis_init:/init
-    command: >
-      sh -c "cp /app/init-db.sh /init/ && chmod +x /init/init-db.sh && echo 'Copied initialization scripts to shared volume'"
-
-  # Node.js Application
+  # Node.js Application with Hypnosis App
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Using pre-built image from the GitHub Container Registry
+    # This image contains all the application code and scripts
+    image: ghcr.io/your-username/hypnosis-app:latest
     container_name: hypnosis-app
     restart: unless-stopped
     volumes:
       - hypnosis_uploads:/app/uploads
+      - hypnosis_init:/init
     environment:
-      # Database settings for Docker Compose
+      # Database settings
       NODE_ENV: production
       USE_DATABASE: "true"
-      # Use explicit host 'postgres' which is the service name in Docker Compose
       POSTGRES_USER: hypnosis
       POSTGRES_PASSWORD: hypnosis_password
       POSTGRES_DB: hypnosis_db
       POSTGRES_HOST: postgres
-      # Full connection string with explicit service name as host
       DATABASE_URL: postgresql://hypnosis:hypnosis_password@postgres:5432/hypnosis_db
-      SESSION_SECRET: hypnosis-app-secret-key-docker
+      SESSION_SECRET: hypnosis-app-secret-key-production
     ports:
       - "5000:5000"
+    # Prepare the init scripts and then start the application
+    command: >
+      sh -c "cp /app/init-db.sh /init/ && chmod +x /init/init-db.sh && 
+             echo 'Copied initialization scripts to shared volume' && 
+             /app/wait-for-postgres.sh npm run start"
     depends_on:
       postgres:
         condition: service_healthy
-      init:
-        condition: service_completed_successfully
 
 volumes:
   postgres_data:
