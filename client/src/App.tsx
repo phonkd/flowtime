@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import CategoryPage from "@/pages/category";
 import Auth from "@/pages/auth";
 import UploadPage from "@/pages/upload";
+import AdminPage from "@/pages/admin-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/category/:id" component={CategoryPage} />
       <Route path="/login" component={Auth} />
       <Route path="/upload" component={UploadPage} />
+      <Route path="/admin" component={AdminPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

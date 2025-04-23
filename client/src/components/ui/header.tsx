@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { 
@@ -8,7 +9,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
-import { Music, Menu, Search, Upload, User } from "lucide-react";
+import { Music, Menu, Search, Upload, User, ShieldCheck } from "lucide-react";
 
 interface HeaderProps {
   onSearch: (query: string) => void;
