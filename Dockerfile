@@ -20,6 +20,7 @@ RUN mkdir -p uploads && chmod 777 uploads
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=5000
+ENV USE_DATABASE=true
 
 # Expose port
 EXPOSE 5000

@@ -1,0 +1,54 @@
+2025-04-23 18:35:52.834 UTC [40] FATAL:  role "postgres" does not exist
+app-1  | Using direct PostgreSQL connection
+app-1  | Connecting to database: postgres://****:****@db:5432/hypnosis
+app-1  | USE_DATABASE env variable value: true
+app-1  | USE_DATABASE parsed as: true
+app-1  | DATABASE_URL present: true
+app-1  | Using DatabaseStorage for data persistence
+app-1  | Environment variables loaded:
+app-1  | NODE_ENV: production
+app-1  | USE_DATABASE: true
+app-1  | DATABASE_URL: Set (not showing value)
+app-1  | Error during database initialization: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+app-1  |     at file:///app/node_modules/@neondatabase/serverless/index.mjs:1345:74
+app-1  |     at async NeonPreparedQuery.execute (file:///app/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+app-1  |     at async DatabaseStorage.initializeDatabase (file:///app/dist/index.js:591:29)
+app-1  | 6:35:53 PM [express] serving on port 5000
+db-1   | 2025-04-23 18:35:57.872 UTC [47] FATAL:  role "postgres" does not exist
+app-1  | 6:36:00 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Not authenticated"}
+app-1  | 6:36:00 PM [express] GET /api/categories 500 in 2ms :: {"message":"Internal server error"}
+app-1  | 6:36:00 PM [express] GET /api/tags 500 in 1ms :: {"message":"Internal server error"}
+app-1  | Error fetching tracks: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+app-1  |     at file:///app/node_modules/@neondatabase/serverless/index.mjs:1345:74
+app-1  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+app-1  |     at async NeonPreparedQuery.execute (file:///app/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+app-1  |     at async DatabaseStorage.getAllAudioTracksWithDetails (file:///app/dist/index.js:880:20)
+app-1  |     at async file:///app/dist/index.js:1377:20
+app-1  | 6:36:00 PM [express] GET /api/tracks 500 in 2ms :: {"message":"Internal server error"}
+db-1   | 2025-04-23 18:36:02.916 UTC [54] FATAL:  role "postgres" does not exist
+app-1  | 6:36:06 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Not authenticated"}
+app-1  | 6:36:06 PM [express] GET /api/categories 500 in 2ms :: {"message":"Internal server error"}
+app-1  | 6:36:06 PM [express] GET /api/tags 500 in 1ms :: {"message":"Internal server error"}
+app-1  | Error fetching tracks: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+app-1  |     at file:///app/node_modules/@neondatabase/serverless/index.mjs:1345:74
+app-1  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+app-1  |     at async NeonPreparedQuery.execute (file:///app/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+app-1  |     at async DatabaseStorage.getAllAudioTracksWithDetails (file:///app/dist/index.js:880:20)
+app-1  |     at async file:///app/dist/index.js:1377:20
+app-1  | 6:36:06 PM [express] GET /api/tracks 500 in 1ms :: {"message":"Internal server error"}
+db-1   | 2025-04-23 18:36:07.954 UTC [61] FATAL:  role "postgres" does not exist
+app-1  | 6:36:08 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Not authenticated"}
+app-1  | 6:36:08 PM [express] GET /api/categories 500 in 2ms :: {"message":"Internal server error"}
+app-1  | 6:36:08 PM [express] GET /api/tags 500 in 1ms :: {"message":"Internal server error"}
+app-1  | Error fetching tracks: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+app-1  |     at file:///app/node_modules/@neondatabase/serverless/index.mjs:1345:74
+app-1  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+app-1  |     at async NeonPreparedQuery.execute (file:///app/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+app-1  |     at async DatabaseStorage.getAllAudioTracksWithDetails (file:///app/dist/index.js:880:20)
+app-1  |     at async file:///app/dist/index.js:1377:20
+app-1  | 6:36:08 PM [express] GET /api/tracks 500 in 2ms :: {"message":"Internal server error"}
+db-1   | 2025-04-23 18:36:12.989 UTC [68] FATAL:  role "postgres" does not exist
+db-1   | 2025-04-23 18:36:18.028 UTC [75] FATAL:  role "postgres" does not exist
+db-1   | 2025-04-23 18:36:23.058 UTC [82] FATAL:  role "postgres" does not exist
+db-1   | 2025-04-23 18:36:28.101 UTC [89] FATAL:  role "postgres" does not exist
+db-1   | 2025-04-23 18:36:33.128 UTC [96] FATAL:  role "postgres" does not exist

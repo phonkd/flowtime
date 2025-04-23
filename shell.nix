@@ -5,7 +5,7 @@ mkShell {
   buildInputs = [
     nodejs-18_x
     nodePackages.typescript
-    postgresql_14
+    postgresql_16
   ];
 
   shellHook = ''
