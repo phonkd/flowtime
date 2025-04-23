@@ -134,11 +134,15 @@ export class MemStorage implements IStorage {
   }
   
   private initializeSync() {
-    // Create admin user
+    // Create admin user with bcrypt hashed password
+    // Using hardcoded hash for initialization since we can't use bcrypt.hashSync in the constructor
+    // This is the bcrypt hash of 'admin123' with 10 rounds
+    const hashedPassword = '$2a$10$uVz7RbxcRn9Y.C0xvEHh9um.SjPx00W3RdLq5QQZ0GUm21ThJqt6W';
+    
     const adminUser: User = {
       id: this.currentUserId++,
       username: "admin",
-      password: "admin123",  // Simple password for testing
+      password: hashedPassword,  // Hashed password for proper authentication
       role: "admin",
       fullName: "Admin User",
       email: "admin@example.com",
@@ -245,6 +249,8 @@ export class MemStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user) return undefined;
     
+    // Note: newPassword should already be hashed when called from the admin password reset API
+    // as we're handling the hashing in the routes
     const updatedUser = { ...user, password: newPassword };
     this.users.set(userId, updatedUser);
     return updatedUser;
