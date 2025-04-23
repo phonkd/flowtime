@@ -9,6 +9,8 @@ import {
 } from "@shared/schema";
 
 export interface IStorage {
+  sessionStore: any;
+  
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -48,6 +50,22 @@ export interface IStorage {
   getAudioTrackWithDetails(id: number, userId?: number): Promise<AudioTrackWithDetails | undefined>;
   getAllAudioTracksWithDetails(userId?: number): Promise<AudioTrackWithDetails[]>;
   getAudioTracksByCategoryWithDetails(categoryId: number, userId?: number): Promise<AudioTrackWithDetails[]>;
+  
+  // Admin operations for shareable links
+  createShareableLink(link: InsertShareableLink): Promise<ShareableLink>;
+  getShareableLinkById(id: number): Promise<ShareableLink | undefined>;
+  getShareableLinkByLinkId(linkId: string): Promise<ShareableLink | undefined>;
+  getAllShareableLinks(): Promise<ShareableLink[]>;
+  getUserShareableLinks(userId: number): Promise<ShareableLink[]>;
+  updateShareableLink(id: number, isActive: boolean): Promise<ShareableLink>;
+  deleteShareableLink(id: number): Promise<void>;
+  
+  // User track access operations
+  grantUserAccess(access: InsertUserTrackAccess): Promise<UserTrackAccess>;
+  revokeUserAccess(userId: number, audioTrackId: number): Promise<void>;
+  getUsersWithAccessToTrack(audioTrackId: number): Promise<User[]>;
+  checkUserAccessToTrack(userId: number, audioTrackId: number): Promise<boolean>;
+  getTracksByUser(userId: number): Promise<AudioTrack[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -489,4 +507,425 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { db } from "./db";
+import { eq, and, like, desc, asc, inArray, or, not, isNull } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
+import session from "express-session";
+import { pool } from "./db";
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.SessionStore;
+
+  constructor() {
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      tableName: 'session',
+      createTableIfMissing: true 
+    });
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  // Category operations
+  async getAllCategories(): Promise<CategoryWithCount[]> {
+    const categoriesResult = await db.select().from(categories);
+    return categoriesResult;
+  }
+
+  async getCategoryById(id: number): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    return category;
+  }
+
+  async getCategoryByName(name: string): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.name, name));
+    return category;
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const [category] = await db.insert(categories).values(insertCategory).returning();
+    return category;
+  }
+
+  async updateCategoryCount(id: number, count: number): Promise<Category> {
+    const [category] = await db
+      .update(categories)
+      .set({ count })
+      .where(eq(categories.id, id))
+      .returning();
+    return category;
+  }
+
+  // Tag operations
+  async getAllTags(): Promise<TagWithCount[]> {
+    const tagsResult = await db.select().from(tags);
+    // Calculate count for each tag
+    const counts = await db
+      .select({
+        tagId: audioTrackTags.tagId,
+        count: db.fn.count(audioTrackTags.id)
+      })
+      .from(audioTrackTags)
+      .groupBy(audioTrackTags.tagId);
+    
+    const countMap = new Map<number, number>();
+    counts.forEach(c => countMap.set(c.tagId, Number(c.count)));
+    
+    return tagsResult.map(tag => ({
+      ...tag,
+      count: countMap.get(tag.id) || 0
+    }));
+  }
+
+  async getTagById(id: number): Promise<Tag | undefined> {
+    const [tag] = await db.select().from(tags).where(eq(tags.id, id));
+    return tag;
+  }
+
+  async getTagByName(name: string): Promise<Tag | undefined> {
+    const [tag] = await db.select().from(tags).where(eq(tags.name, name));
+    return tag;
+  }
+
+  async createTag(insertTag: InsertTag): Promise<Tag> {
+    const [tag] = await db.insert(tags).values(insertTag).returning();
+    return tag;
+  }
+
+  // Audio track operations
+  async getAllAudioTracks(): Promise<AudioTrack[]> {
+    return db.select().from(audioTracks);
+  }
+
+  async getAudioTrackById(id: number): Promise<AudioTrack | undefined> {
+    const [track] = await db.select().from(audioTracks).where(eq(audioTracks.id, id));
+    return track;
+  }
+
+  async getAudioTracksByCategory(categoryId: number): Promise<AudioTrack[]> {
+    return db.select().from(audioTracks).where(eq(audioTracks.categoryId, categoryId));
+  }
+
+  async getAudioTracksByTag(tagId: number): Promise<AudioTrack[]> {
+    const bridgeRecords = await db
+      .select()
+      .from(audioTrackTags)
+      .where(eq(audioTrackTags.tagId, tagId));
+    
+    const audioTrackIds = bridgeRecords.map(r => r.audioTrackId);
+    
+    if (audioTrackIds.length === 0) {
+      return [];
+    }
+    
+    return db
+      .select()
+      .from(audioTracks)
+      .where(inArray(audioTracks.id, audioTrackIds));
+  }
+
+  async searchAudioTracks(query: string): Promise<AudioTrack[]> {
+    return db
+      .select()
+      .from(audioTracks)
+      .where(
+        or(
+          like(audioTracks.title, `%${query}%`),
+          like(audioTracks.description, `%${query}%`)
+        )
+      );
+  }
+
+  async createAudioTrack(insertTrack: InsertAudioTrack): Promise<AudioTrack> {
+    const [track] = await db.insert(audioTracks).values(insertTrack).returning();
+    return track;
+  }
+
+  // Audio track tags operations
+  async getTagsForAudioTrack(audioTrackId: number): Promise<Tag[]> {
+    const bridgeRecords = await db
+      .select()
+      .from(audioTrackTags)
+      .where(eq(audioTrackTags.audioTrackId, audioTrackId));
+    
+    const tagIds = bridgeRecords.map(r => r.tagId);
+    
+    if (tagIds.length === 0) {
+      return [];
+    }
+    
+    return db
+      .select()
+      .from(tags)
+      .where(inArray(tags.id, tagIds));
+  }
+
+  async addTagToAudioTrack(audioTrackId: number, tagId: number): Promise<AudioTrackTag> {
+    const [audioTrackTag] = await db
+      .insert(audioTrackTags)
+      .values({ audioTrackId, tagId })
+      .returning();
+    return audioTrackTag;
+  }
+
+  // User progress operations
+  async getUserProgress(userId: number, audioTrackId: number): Promise<UserProgress | undefined> {
+    const [progress] = await db
+      .select()
+      .from(userProgress)
+      .where(
+        and(
+          eq(userProgress.userId, userId),
+          eq(userProgress.audioTrackId, audioTrackId)
+        )
+      );
+    return progress;
+  }
+
+  async getAllUserProgress(userId: number): Promise<UserProgress[]> {
+    return db
+      .select()
+      .from(userProgress)
+      .where(eq(userProgress.userId, userId));
+  }
+
+  async saveUserProgress(insertProgress: InsertUserProgress): Promise<UserProgress> {
+    // Check if progress already exists
+    const existing = await this.getUserProgress(
+      insertProgress.userId,
+      insertProgress.audioTrackId
+    );
+    
+    if (existing) {
+      // Update existing record
+      const [updated] = await db
+        .update(userProgress)
+        .set(insertProgress)
+        .where(eq(userProgress.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new record
+      const [newProgress] = await db
+        .insert(userProgress)
+        .values(insertProgress)
+        .returning();
+      return newProgress;
+    }
+  }
+
+  // Combined operations for frontend
+  async getAudioTrackWithDetails(id: number, userId?: number): Promise<AudioTrackWithDetails | undefined> {
+    const track = await this.getAudioTrackById(id);
+    if (!track) return undefined;
+    
+    const category = await this.getCategoryById(track.categoryId);
+    if (!category) return undefined;
+    
+    const tags = await this.getTagsForAudioTrack(id);
+    
+    let progress = undefined;
+    if (userId) {
+      progress = await this.getUserProgress(userId, id);
+    }
+    
+    return {
+      ...track,
+      category,
+      tags,
+      progress
+    };
+  }
+
+  async getAllAudioTracksWithDetails(userId?: number): Promise<AudioTrackWithDetails[]> {
+    const tracks = await this.getAllAudioTracks();
+    
+    const result: AudioTrackWithDetails[] = [];
+    
+    for (const track of tracks) {
+      const category = await this.getCategoryById(track.categoryId);
+      const tags = await this.getTagsForAudioTrack(track.id);
+      
+      let progress = undefined;
+      if (userId) {
+        progress = await this.getUserProgress(userId, track.id);
+      }
+      
+      if (category) {
+        result.push({
+          ...track,
+          category,
+          tags,
+          progress
+        });
+      }
+    }
+    
+    return result;
+  }
+
+  async getAudioTracksByCategoryWithDetails(categoryId: number, userId?: number): Promise<AudioTrackWithDetails[]> {
+    const tracks = await this.getAudioTracksByCategory(categoryId);
+    const category = await this.getCategoryById(categoryId);
+    
+    if (!category) return [];
+    
+    const result: AudioTrackWithDetails[] = [];
+    
+    for (const track of tracks) {
+      const tags = await this.getTagsForAudioTrack(track.id);
+      
+      let progress = undefined;
+      if (userId) {
+        progress = await this.getUserProgress(userId, track.id);
+      }
+      
+      result.push({
+        ...track,
+        category,
+        tags,
+        progress
+      });
+    }
+    
+    return result;
+  }
+
+  // Admin operations for shareable links
+  async createShareableLink(insertLink: InsertShareableLink): Promise<ShareableLink> {
+    const [link] = await db.insert(shareableLinks).values(insertLink).returning();
+    return link;
+  }
+  
+  async getShareableLinkById(id: number): Promise<ShareableLink | undefined> {
+    const [link] = await db.select().from(shareableLinks).where(eq(shareableLinks.id, id));
+    return link;
+  }
+  
+  async getShareableLinkByLinkId(linkId: string): Promise<ShareableLink | undefined> {
+    const [link] = await db
+      .select()
+      .from(shareableLinks)
+      .where(eq(shareableLinks.linkId, linkId as any));
+    return link;
+  }
+  
+  async getAllShareableLinks(): Promise<ShareableLink[]> {
+    return db.select().from(shareableLinks);
+  }
+  
+  async getUserShareableLinks(userId: number): Promise<ShareableLink[]> {
+    return db.select().from(shareableLinks).where(eq(shareableLinks.createdById, userId));
+  }
+  
+  async updateShareableLink(id: number, isActive: boolean): Promise<ShareableLink> {
+    const [link] = await db
+      .update(shareableLinks)
+      .set({ isActive })
+      .where(eq(shareableLinks.id, id))
+      .returning();
+    return link;
+  }
+  
+  async deleteShareableLink(id: number): Promise<void> {
+    await db.delete(shareableLinks).where(eq(shareableLinks.id, id));
+  }
+  
+  // User track access operations
+  async grantUserAccess(insertAccess: InsertUserTrackAccess): Promise<UserTrackAccess> {
+    const [access] = await db.insert(userTrackAccess).values(insertAccess).returning();
+    return access;
+  }
+  
+  async revokeUserAccess(userId: number, audioTrackId: number): Promise<void> {
+    await db
+      .delete(userTrackAccess)
+      .where(
+        and(
+          eq(userTrackAccess.userId, userId),
+          eq(userTrackAccess.audioTrackId, audioTrackId)
+        )
+      );
+  }
+  
+  async getUsersWithAccessToTrack(audioTrackId: number): Promise<User[]> {
+    const accessRecords = await db
+      .select()
+      .from(userTrackAccess)
+      .where(eq(userTrackAccess.audioTrackId, audioTrackId));
+    
+    const userIds = accessRecords.map(r => r.userId);
+    
+    if (userIds.length === 0) {
+      return [];
+    }
+    
+    return db.select().from(users).where(inArray(users.id, userIds));
+  }
+  
+  async checkUserAccessToTrack(userId: number, audioTrackId: number): Promise<boolean> {
+    // Check if user has explicit access to the track
+    const [access] = await db
+      .select()
+      .from(userTrackAccess)
+      .where(
+        and(
+          eq(userTrackAccess.userId, userId),
+          eq(userTrackAccess.audioTrackId, audioTrackId)
+        )
+      );
+      
+    if (access) return true;
+    
+    // Check if the track is public
+    const [track] = await db
+      .select()
+      .from(audioTracks)
+      .where(
+        and(
+          eq(audioTracks.id, audioTrackId),
+          eq(audioTracks.isPublic, true)
+        )
+      );
+      
+    return !!track;
+  }
+  
+  async getTracksByUser(userId: number): Promise<AudioTrack[]> {
+    // Get all tracks user has access to
+    const accessRecords = await db
+      .select()
+      .from(userTrackAccess)
+      .where(eq(userTrackAccess.userId, userId));
+    
+    const privateTrackIds = accessRecords.map(r => r.audioTrackId);
+    
+    // Get all public tracks + private tracks user has access to
+    return db
+      .select()
+      .from(audioTracks)
+      .where(
+        or(
+          eq(audioTracks.isPublic, true),
+          inArray(audioTracks.id, privateTrackIds)
+        )
+      );
+  }
+}
+
+export const storage = new DatabaseStorage();
