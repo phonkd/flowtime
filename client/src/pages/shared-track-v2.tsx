@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Volume2, Play, Pause } from "lucide-react";
 import { useAudioContext } from "@/lib/audio-context";
-import { useAudio } from "@/hooks/use-audio";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +12,19 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 export default function SharedTrackPage() {
   const { linkId } = useParams();
   const { currentTrack, isPlaying, pauseTrack, resumeTrack, playTrack } = useAudioContext();
+  
+  // State for the audio player
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [formattedCurrentTime, setFormattedCurrentTime] = useState("0:00");
+  const [formattedDuration, setFormattedDuration] = useState("0:00");
+  
+  // Refs
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const intervalRef = useRef<number | null>(null);
   
   // Query the shared track API endpoint
   const {
@@ -24,67 +36,138 @@ export default function SharedTrackPage() {
     retry: false // Don't retry if 404 or other error
   });
   
-  // Use the useAudio hook for audio controls
-  const {
-    playing,
-    progressPercent,
-    formattedCurrentTime,
-    formattedDuration,
-    volume,
-    togglePlay,
-    seekTo,
-    setVolumeLevel
-  } = useAudio(track ? {
-    src: track.audioUrl,
-    trackId: track.id,
-    initialProgress: 0,
-    onEnded: () => {
-      // Do nothing on end, or implement loop functionality
-    }
-  } : {
-    src: "",
-    trackId: 0,
-    initialProgress: 0,
-    onEnded: () => {}
-  });
-  
-  // Sync track with AudioContext when it's loaded
+  // Create audio element when track is loaded
   useEffect(() => {
-    if (track && (!currentTrack || currentTrack.id !== track.id)) {
-      playTrack(track);
+    if (!track) return;
+    
+    // Clean up existing interval
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-  }, [track, currentTrack, playTrack]);
+    
+    // Create new audio element
+    const audio = new Audio(track.audioUrl);
+    audioRef.current = audio;
+    
+    // Set initial volume
+    audio.volume = volume;
+    
+    // Event listeners
+    const handleLoadedMetadata = () => {
+      console.log("Audio metadata loaded");
+      setDuration(audio.duration);
+      setFormattedDuration(formatTime(audio.duration));
+    };
+    
+    const handleEnded = () => {
+      setPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+      }
+    };
+    
+    const handleError = (e: Event) => {
+      console.error("Error playing audio:", e);
+    };
+    
+    // Add event listeners
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    
+    // Auto-play when track is loaded
+    audio.play().then(() => {
+      setPlaying(true);
+      startProgressTracking();
+      if (playTrack) playTrack(track);
+    }).catch(err => {
+      console.error("Error playing audio:", err);
+    });
+    
+    // Cleanup
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        audio.removeEventListener('ended', handleEnded);
+        audio.removeEventListener('error', handleError);
+      }
+      
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [track]);
   
-  // Sync playing state with context
-  useEffect(() => {
-    if (playing !== isPlaying && track) {
-      togglePlay();
+  // Start tracking progress
+  const startProgressTracking = () => {
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
     }
-  }, [isPlaying, playing, togglePlay, track]);
+    
+    intervalRef.current = window.setInterval(() => {
+      if (audioRef.current) {
+        const current = audioRef.current.currentTime;
+        const duration = audioRef.current.duration;
+        
+        setCurrentTime(current);
+        setFormattedCurrentTime(formatTime(current));
+        setProgressPercent((current / duration) * 100);
+      }
+    }, 100);
+  };
+  
+  // Stop tracking progress
+  const stopProgressTracking = () => {
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+  
+  // Toggle playback
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+      stopProgressTracking();
+      if (pauseTrack) pauseTrack();
+    } else {
+      audioRef.current.play().catch(console.error);
+      setPlaying(true);
+      startProgressTracking();
+      if (resumeTrack) resumeTrack();
+    }
+  };
   
   // Handle volume change
   const handleVolumeChange = (value: number[]) => {
     const newVolume = value[0] / 100;
-    setVolumeLevel(newVolume);
+    setVolume(newVolume);
+    
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
   };
   
   // Handle play/pause
   const handlePlayPause = () => {
-    if (currentTrack && currentTrack.id === track?.id) {
-      if (isPlaying) {
-        pauseTrack();
-      } else {
-        resumeTrack();
-      }
-    } else if (track) {
-      playTrack(track);
-    }
+    togglePlay();
   };
   
   // Handle seeking
   const handleSeek = (value: number[]) => {
-    const seekPosition = value[0];
-    seekTo(seekPosition);
+    if (!audioRef.current || !duration) return;
+    
+    const newTime = (value[0] / 100) * duration;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+    setFormattedCurrentTime(formatTime(newTime));
+    setProgressPercent(value[0]);
   };
   
   if (isTrackLoading) {
