@@ -1,3 +1,7 @@
+// Import dotenv at the top to ensure environment variables are loaded before anything else
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { 
   users, type User, type InsertUser,
   categories, type Category, type InsertCategory,
@@ -1175,8 +1179,16 @@ Object.assign(MemStorage.prototype, {
 
 // Choose storage implementation based on environment variable
 // Convert string 'true' to boolean true
-const USE_DATABASE = process.env.USE_DATABASE === 'true' || process.env.USE_DATABASE === true;
-console.log('USE_DATABASE value:', process.env.USE_DATABASE, 'type:', typeof process.env.USE_DATABASE);
-export const storage = USE_DATABASE ? new DatabaseStorage() : new MemStorage();
+const USE_DATABASE = process.env.USE_DATABASE === 'true';
+console.log('USE_DATABASE env variable value:', process.env.USE_DATABASE);
+console.log('USE_DATABASE parsed as:', USE_DATABASE);
 
-console.log(`Using ${USE_DATABASE ? 'DatabaseStorage' : 'MemStorage'} for data persistence`);
+// Don't use DatabaseStorage unless we have a DATABASE_URL
+const hasDatabaseUrl = !!process.env.DATABASE_URL;
+console.log('DATABASE_URL present:', hasDatabaseUrl);
+
+// Only use DatabaseStorage if both USE_DATABASE is true and we have a DATABASE_URL
+const useDatabase = USE_DATABASE && hasDatabaseUrl;
+export const storage = useDatabase ? new DatabaseStorage() : new MemStorage();
+
+console.log(`Using ${useDatabase ? 'DatabaseStorage' : 'MemStorage'} for data persistence`);
