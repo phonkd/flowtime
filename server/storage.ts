@@ -5,7 +5,10 @@ import {
   audioTracks, type AudioTrack, type InsertAudioTrack,
   audioTrackTags, type AudioTrackTag, type InsertAudioTrackTag,
   userProgress, type UserProgress, type InsertUserProgress,
-  type AudioTrackWithDetails, type CategoryWithCount, type TagWithCount
+  shareableLinks, type ShareableLink, type InsertShareableLink,
+  userTrackAccess, type UserTrackAccess, type InsertUserTrackAccess,
+  type AudioTrackWithDetails, type CategoryWithCount, type TagWithCount,
+  type ShareableLinkWithDetails, type UserTrackAccessWithDetails
 } from "@shared/schema";
 
 export interface IStorage {
