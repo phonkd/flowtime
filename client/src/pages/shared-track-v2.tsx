@@ -36,9 +36,9 @@ export default function SharedTrackPage() {
     retry: false // Don't retry if 404 or other error
   });
   
-  // Create audio element when track is loaded
+  // Set up event handlers for the audio element
   useEffect(() => {
-    if (!track) return;
+    if (!audioRef.current || !track) return;
     
     // Clean up existing interval
     if (intervalRef.current) {
@@ -46,14 +46,12 @@ export default function SharedTrackPage() {
       intervalRef.current = null;
     }
     
-    // Create new audio element
-    const audio = new Audio(track.audioUrl);
-    audioRef.current = audio;
+    const audio = audioRef.current;
     
     // Set initial volume
     audio.volume = volume;
     
-    // Event listeners
+    // Event handlers
     const handleLoadedMetadata = () => {
       console.log("Audio metadata loaded");
       setDuration(audio.duration);
@@ -62,9 +60,7 @@ export default function SharedTrackPage() {
     
     const handleEnded = () => {
       setPlaying(false);
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-      }
+      audio.currentTime = 0;
     };
     
     const handleError = (e: Event) => {
@@ -76,30 +72,22 @@ export default function SharedTrackPage() {
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
     
-    // Auto-play when track is loaded
-    audio.play().then(() => {
-      setPlaying(true);
-      startProgressTracking();
-      if (playTrack) playTrack(track);
-    }).catch(err => {
-      console.error("Error playing audio:", err);
-    });
+    // Try to play the audio when track is loaded
+    audio.load(); // Force reload audio
     
     // Cleanup
     return () => {
-      if (audio) {
-        audio.pause();
-        audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        audio.removeEventListener('ended', handleEnded);
-        audio.removeEventListener('error', handleError);
-      }
+      audio.pause();
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
       
       if (intervalRef.current) {
         window.clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [track]);
+  }, [track, audioRef.current]);
   
   // Start tracking progress
   const startProgressTracking = () => {
@@ -208,6 +196,22 @@ export default function SharedTrackPage() {
   return (
     <div className="container mx-auto py-8">
       <div className="max-w-3xl mx-auto">
+        {/* Hidden audio element */}
+        <audio 
+          ref={audioRef} 
+          src={track.audioUrl} 
+          preload="auto"
+          onPlay={() => {
+            setPlaying(true);
+            startProgressTracking();
+          }}
+          onPause={() => {
+            setPlaying(false);
+            stopProgressTracking();
+          }}
+          className="hidden"
+        />
+        
         <Card className="shadow-lg border-t-4 border-t-primary">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6">
@@ -235,7 +239,7 @@ export default function SharedTrackPage() {
                         onClick={handlePlayPause}
                         className="h-12 w-12 rounded-full"
                       >
-                        {isPlaying && currentTrack?.id === track.id ? (
+                        {playing ? (
                           <Pause className="h-6 w-6" />
                         ) : (
                           <Play className="h-6 w-6 ml-1" />
