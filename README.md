@@ -74,6 +74,29 @@ This application can be easily deployed using Docker Compose:
 
 #### Production Deployment
 
+##### GitHub Actions Deployment (Recommended)
+
+This repository includes GitHub Actions workflows that automatically build and publish Docker images to GitHub Container Registry (GHCR):
+
+1. When you push to the `main` branch or create a new release tag, GitHub Actions will:
+   - Build the application Docker image
+   - Build the database Docker image (with sample data pre-loaded)
+   - Push both images to GitHub Container Registry
+   - Generate a production-ready `docker-compose.prod.yml` file
+
+2. To deploy using the pre-built images:
+   ```bash
+   # Download the docker-compose.prod.yml from the latest GitHub Actions run artifacts
+   # Create a .env file with your SESSION_SECRET
+   
+   # Start the application
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+##### Manual Production Deployment
+
 For manual production deployment:
 
 1. Build the application:
@@ -97,17 +120,17 @@ For manual production deployment:
    NODE_ENV=production node dist/index.js
    ```
 
-3. The application will be available at:
+4. The application will be available at:
    ```
    http://localhost:5000
    ```
 
-4. To stop the application:
+5. To stop the application:
    ```bash
    docker-compose down
    ```
 
-5. To also remove persistent data volumes:
+6. To also remove persistent data volumes:
    ```bash
    docker-compose down -v
    ```
@@ -126,6 +149,10 @@ Use these credentials to access the admin dashboard at `/admin`.
 ## Project Structure
 
 ```
+├── .github/              # GitHub configuration
+│   └── workflows/        # GitHub Actions workflows
+│       ├── docker-publish.yml          # Single-image build workflow
+│       └── docker-compose-publish.yml  # Multi-container build workflow
 ├── client/               # Frontend React application
 │   ├── src/
 │   │   ├── components/   # UI components
@@ -140,7 +167,12 @@ Use these credentials to access the admin dashboard at `/admin`.
 │   └── index.ts          # Server entry point
 ├── shared/               # Shared code between client and server
 │   └── schema.ts         # Database schema and types
-└── public/               # Static assets
+├── public/               # Static assets
+├── Dockerfile            # Application container configuration
+├── Dockerfile.db         # Database container with sample data
+├── docker-compose.yml    # Local development Docker setup
+├── init-db.sh            # Database initialization script
+└── DEPLOYMENT.md         # Detailed deployment instructions
 ```
 
 ## API Endpoints
