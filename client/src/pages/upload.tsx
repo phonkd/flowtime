@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -64,6 +65,8 @@ export default function UploadPage() {
   const [isCalculatingDuration, setIsCalculatingDuration] = useState(false);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [previewURL, setPreviewURL] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
   // Fetch categories
   const { data: categories = [] } = useQuery<any[]>({
@@ -169,32 +172,147 @@ export default function UploadPage() {
     },
   });
 
+  // Custom upload function with progress tracking
+  const uploadWithProgress = async (formData: FormData) => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      // Create XMLHttpRequest for progress tracking
+      const xhr = new XMLHttpRequest();
+      
+      // Setup promise to handle response
+      const promise = new Promise<any>((resolve, reject) => {
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(progress);
+          }
+        });
+        
+        // Handle response
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve(response);
+            } catch (e) {
+              resolve(xhr.responseText);
+            }
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
+          }
+        };
+        
+        // Handle network errors
+        xhr.onerror = () => {
+          reject(new Error('Network error occurred during upload'));
+        };
+        
+        // Handle timeout
+        xhr.ontimeout = () => {
+          reject(new Error('Upload timed out'));
+        };
+      });
+      
+      // Open and send the request
+      xhr.open('POST', '/api/uploads/audio', true);
+      xhr.timeout = 3600000; // 1 hour timeout for large files
+      xhr.send(formData);
+      
+      return promise;
+    } finally {
+      // Cleanup
+      setIsUploading(false);
+    }
+  };
+
   // Form submission handler
   const onSubmit = (values: UploadFormValues) => {
-    const formData = new FormData();
-    formData.append('title', values.title);
-    formData.append('description', values.description);
-    formData.append('categoryId', values.categoryId);
-    
-    // Add duration if calculated
-    if (audioDuration) {
-      formData.append('duration', audioDuration.toString());
-    }
-    
-    // Add tags if selected
-    if (values.tags && values.tags.length > 0) {
-      values.tags.forEach(tag => {
-        formData.append('tags', tag);
+    try {
+      const formData = new FormData();
+      formData.append('title', values.title);
+      formData.append('description', values.description);
+      formData.append('categoryId', values.categoryId);
+      
+      // Add duration if calculated
+      if (audioDuration) {
+        formData.append('duration', audioDuration.toString());
+      }
+      
+      // Add tags if selected
+      if (values.tags && values.tags.length > 0) {
+        values.tags.forEach(tag => {
+          formData.append('tags', tag);
+        });
+      }
+      
+      // Add audio file
+      if (values.audioFile && values.audioFile[0]) {
+        const file = values.audioFile[0];
+        
+        // Show a toast notification for large files
+        if (file.size > 100 * 1024 * 1024) {
+          toast({
+            title: 'Large File',
+            description: 'Your file is very large. Upload may take some time to complete.',
+            duration: 5000,
+          });
+        }
+        
+        formData.append('audioFile', file);
+        
+        // Display upload starting toast
+        toast({
+          title: 'Upload Started',
+          description: 'Your audio file is being uploaded. Please wait...',
+          duration: 3000,
+        });
+        
+        // Use custom upload with progress
+        setIsUploading(true);
+        uploadWithProgress(formData)
+          .then((response) => {
+            // Handle success
+            queryClient.invalidateQueries({ queryKey: ['/api/tracks'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+            
+            toast({
+              title: 'Success!',
+              description: 'Your audio has been uploaded.',
+            });
+            
+            // Redirect to home page
+            setLocation('/');
+          })
+          .catch((error) => {
+            console.error('Upload error:', error);
+            
+            toast({
+              title: 'Upload Failed',
+              description: error.message || 'Failed to upload audio. Please try again with a smaller file or check your network connection.',
+              variant: 'destructive',
+            });
+          })
+          .finally(() => {
+            setIsUploading(false);
+          });
+      } else {
+        toast({
+          title: 'Missing File',
+          description: 'Please select an audio file to upload.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      toast({
+        title: 'Upload Error',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
       });
     }
-    
-    // Add audio file
-    if (values.audioFile && values.audioFile[0]) {
-      formData.append('audioFile', values.audioFile[0]);
-    }
-    
-    // Submit the form
-    uploadMutation.mutate(formData);
   };
 
   return (
@@ -364,11 +482,27 @@ export default function UploadPage() {
                 )}
               />
               
+              {/* Upload Progress */}
+              {isUploading && (
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Uploading...</span>
+                    <span className="text-sm font-medium">{uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Please wait while your audio file is being uploaded. This may take several minutes for large files.
+                  </p>
+                </div>
+              )}
+              
+              {/* Form Actions */}
               <div className="flex justify-end gap-4">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setLocation('/')}
+                  disabled={isUploading}
                 >
                   Cancel
                 </Button>
@@ -377,9 +511,9 @@ export default function UploadPage() {
                     <TooltipTrigger asChild>
                       <Button 
                         type="submit" 
-                        disabled={uploadMutation.isPending || isCalculatingDuration}
+                        disabled={isUploading || isCalculatingDuration}
                       >
-                        {uploadMutation.isPending ? (
+                        {isUploading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Uploading...
