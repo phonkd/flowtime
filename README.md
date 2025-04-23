@@ -34,6 +34,8 @@ A web platform for browsing, categorizing, and playing hypnosis audio recordings
 
 ### Installation
 
+#### Standard Installation
+
 1. Clone the repository:
    ```bash
    git clone <repository-url>
@@ -54,6 +56,63 @@ A web platform for browsing, categorizing, and playing hypnosis audio recordings
    ```
    http://localhost:5000
    ```
+
+#### Docker Installation
+
+This application can be easily deployed using Docker Compose:
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd hypnosis-audio-platform
+   ```
+
+2. Start the application stack with Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+#### Production Deployment
+
+For manual production deployment:
+
+1. Build the application:
+   ```bash
+   # Check TypeScript types
+   npm run check
+   
+   # Build the client and server code
+   npm run build
+   ```
+
+2. Set up the database:
+   ```bash
+   # Push schema to the database
+   npx drizzle-kit push
+   ```
+
+3. Start the application:
+   ```bash
+   # Run in production mode
+   NODE_ENV=production node dist/index.js
+   ```
+
+3. The application will be available at:
+   ```
+   http://localhost:5000
+   ```
+
+4. To stop the application:
+   ```bash
+   docker-compose down
+   ```
+
+5. To also remove persistent data volumes:
+   ```bash
+   docker-compose down -v
+   ```
+
+For environment variables in Docker, you can set them in a `.env` file and Docker will automatically load them. A sample `.env.example` file is provided as a template - copy it to `.env` and modify the values as needed.
 
 ## Admin Access
 
