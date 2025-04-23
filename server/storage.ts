@@ -151,76 +151,7 @@ export class MemStorage implements IStorage {
     this.users.set(adminUser.id, adminUser);
     console.log("Created admin user:", adminUser.username);
     
-    // Create single category directly without async
-    const hypnosisCategory: Category = { 
-      id: this.currentCategoryId++,
-      name: "Hypnosis", 
-      description: "Guided hypnosis sessions for relaxation and personal growth",
-      imageUrl: null,
-      count: 0
-    };
-    this.categories.set(hypnosisCategory.id, hypnosisCategory);
-    console.log("Created hypnosis category:", hypnosisCategory);
-    
-    // Create single tag directly
-    const hypnosisTag: Tag = { id: this.currentTagId++, name: "Hypnosis" };
-    this.tags.set(hypnosisTag.id, hypnosisTag);
-    
-    // Create demo tracks for the Hypnosis category
-    const track1: AudioTrack = {
-      id: this.currentAudioTrackId++,
-      title: "Deep Relaxation Hypnosis",
-      description: "Peaceful guided hypnosis with ocean sounds",
-      categoryId: hypnosisCategory.id,
-      imageUrl: hypnosisCategory.imageUrl || "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-      audioUrl: "/audio/relaxation_journey.mp3",
-      duration: 1215, // 20:15
-      createdAt: new Date(),
-      isPublic: true
-    };
-    this.audioTracks.set(track1.id, track1);
-    
-    const track2: AudioTrack = {
-      id: this.currentAudioTrackId++,
-      title: "Sleep Induction Hypnotherapy",
-      description: "Fall asleep faster with gentle voice guidance",
-      categoryId: hypnosisCategory.id,
-      imageUrl: hypnosisCategory.imageUrl || "https://images.unsplash.com/photo-1518112166137-85f9979a43aa?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-      audioUrl: "/audio/sleep_induction.mp3",
-      duration: 1965, // 32:45
-      createdAt: new Date(),
-      isPublic: true
-    };
-    this.audioTracks.set(track2.id, track2);
-    
-    const track3: AudioTrack = {
-      id: this.currentAudioTrackId++,
-      title: "Confidence Hypnosis",
-      description: "Build lasting confidence and self-esteem",
-      categoryId: hypnosisCategory.id,
-      imageUrl: hypnosisCategory.imageUrl || "https://images.unsplash.com/photo-1534859108275-a3a6f23619fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-      audioUrl: "/audio/confidence_boost.mp3",
-      duration: 930, // 15:30
-      createdAt: new Date(),
-      isPublic: false
-    };
-    this.audioTracks.set(track3.id, track3);
-    
-    // Add the Hypnosis tag to all tracks
-    const addTag = (audioTrackId: number, tagId: number) => {
-      const id = this.currentAudioTrackTagId++;
-      const audioTrackTag: AudioTrackTag = { id, audioTrackId, tagId };
-      this.audioTrackTags.set(id, audioTrackTag);
-    };
-    
-    // Add the hypnosis tag to all tracks
-    addTag(track1.id, hypnosisTag.id);
-    addTag(track2.id, hypnosisTag.id);
-    addTag(track3.id, hypnosisTag.id);
-    
-    // Update category count directly
-    hypnosisCategory.count = 3;
-    this.categories.set(hypnosisCategory.id, hypnosisCategory);
+    // No pre-existing categories, tags, or tracks as requested
   }
   
   // User operations
