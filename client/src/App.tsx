@@ -10,7 +10,7 @@ import CategoryPage from "@/pages/category";
 import Auth from "@/pages/auth";
 import UploadPage from "@/pages/upload";
 import AdminPage from "@/pages/admin-page";
-import SharedTrackPage from "@/pages/shared-track";
+import SharedTrackPage from "@/pages/shared-track-v2";
 import NotFound from "@/pages/not-found";
 
 function Router() {
