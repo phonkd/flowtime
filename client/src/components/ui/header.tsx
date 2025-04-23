@@ -8,7 +8,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
-import { Music, Menu, Search } from "lucide-react";
+import { Music, Menu, Search, Upload, User } from "lucide-react";
 
 interface HeaderProps {
   onSearch: (query: string) => void;
@@ -97,10 +97,19 @@ export function Header({ onSearch }: HeaderProps) {
               <Search className="h-5 w-5" />
             </Button>
             
+            {/* Upload button */}
+            <Link href="/upload">
+              <Button variant="outline" className="hidden md:flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                <span>Upload</span>
+              </Button>
+            </Link>
+            
             {/* Sign in button */}
             <Link href="/login">
-              <Button className="bg-primary hover:bg-primary/90 text-white">
-                Sign In
+              <Button className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span>Sign In</span>
               </Button>
             </Link>
           </div>

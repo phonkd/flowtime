@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Upload, User } from "lucide-react";
 import { CategoryWithCount, TagWithCount } from "@shared/schema";
 
 interface SidebarProps {
@@ -50,8 +50,37 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
     console.log("Duration filter changed:", value);
   };
   
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    if (onCategorySelect && isMobile) {
+      onCategorySelect();
+    }
+  };
+
   return (
     <div className="p-4">
+      {/* Mobile-only actions */}
+      {isMobile && (
+        <div className="mb-6 flex flex-col space-y-2">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start items-center"
+            onClick={() => handleNavigate('/upload')}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            <span>Upload Audio</span>
+          </Button>
+          
+          <Button 
+            className="w-full justify-start items-center bg-primary hover:bg-primary/90 text-white"
+            onClick={() => handleNavigate('/login')}
+          >
+            <User className="h-4 w-4 mr-2" />
+            <span>Sign In</span>
+          </Button>
+        </div>
+      )}
+    
       <h2 className="text-lg font-semibold text-neutral-900 mb-4">Categories</h2>
       
       {/* Categories list */}
