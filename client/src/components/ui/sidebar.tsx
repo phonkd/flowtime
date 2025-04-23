@@ -81,19 +81,19 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
         </div>
       )}
     
-      <h2 className="text-lg font-semibold text-neutral-900 mb-4">Categories</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-4">Categories</h2>
       
       {/* Categories list */}
       <div className="space-y-1 mb-8">
         <Button
           variant="ghost"
-          className="w-full justify-between items-center px-3 py-2 text-left rounded hover:bg-neutral-100 font-medium text-sm"
+          className="w-full justify-between items-center px-3 py-2 text-left rounded hover:bg-accent hover:text-accent-foreground font-medium text-sm"
           onClick={handleAllRecordingsClick}
         >
           <span className="flex items-center">
             <span>All Recordings</span>
           </span>
-          <span className={`text-xs rounded-full px-2 py-0.5 ${isHomePage ? 'bg-primary text-white' : 'bg-neutral-200 text-neutral-700'}`}>
+          <span className={`text-xs rounded-full px-2 py-0.5 ${isHomePage ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
             {categories?.reduce((sum, cat) => sum + cat.count, 0) || "..."}
           </span>
         </Button>
@@ -114,13 +114,13 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
               <Button
                 key={category.id}
                 variant="ghost"
-                className="w-full justify-between items-center px-3 py-2 text-left rounded hover:bg-neutral-100 font-medium text-sm"
+                className="w-full justify-between items-center px-3 py-2 text-left rounded hover:bg-accent hover:text-accent-foreground font-medium text-sm"
                 onClick={() => handleCategoryClick(category.id)}
               >
                 <span className="flex items-center">
                   <span>{category.name}</span>
                 </span>
-                <span className={`text-xs rounded-full px-2 py-0.5 ${categoryFromUrl === category.id ? 'bg-primary text-white' : 'bg-neutral-200 text-neutral-700'}`}>
+                <span className={`text-xs rounded-full px-2 py-0.5 ${categoryFromUrl === category.id ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                   {category.count}
                 </span>
               </Button>
@@ -131,11 +131,11 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
       
       {/* Filters section */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-neutral-900 mb-4">Filters</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Filters</h2>
         
         {/* Duration filter */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
+          <label className="block text-sm font-medium text-muted-foreground mb-1">
             Duration
           </label>
           <Select onValueChange={handleDurationChange}>
@@ -155,7 +155,7 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
         
         {/* Tags filter */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
+          <label className="block text-sm font-medium text-muted-foreground mb-1">
             Tags
           </label>
           
@@ -174,7 +174,7 @@ export function Sidebar({ isMobile = false, onCategorySelect }: SidebarProps) {
                   key={tag.id}
                   variant="outline"
                   size="sm"
-                  className="rounded-full text-xs h-6 px-2 bg-white hover:bg-neutral-100"
+                  className="rounded-full text-xs h-6 px-2 bg-background border-border hover:bg-accent hover:text-accent-foreground"
                 >
                   {tag.name}
                 </Button>

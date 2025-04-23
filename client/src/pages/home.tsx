@@ -46,19 +46,19 @@ export default function Home() {
       
       <div className="flex-grow flex overflow-hidden">
         {/* Sidebar - hidden on mobile */}
-        <aside className="hidden md:block w-64 border-r border-neutral-200 bg-white overflow-y-auto">
+        <aside className="hidden md:block w-64 border-r border-border bg-background overflow-y-auto transition-colors duration-300">
           <Sidebar />
         </aside>
         
         {/* Main content */}
-        <main className="flex-grow overflow-y-auto pb-20 bg-white">
+        <main className="flex-grow overflow-y-auto pb-20 bg-background transition-colors duration-300">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {/* Current category header */}
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-neutral-900">
+              <h2 className="text-2xl font-semibold text-foreground">
                 All Recordings
               </h2>
-              <p className="text-neutral-600 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Browse our complete library of hypnosis audio tracks.
               </p>
             </div>

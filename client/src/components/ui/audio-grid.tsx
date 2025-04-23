@@ -16,7 +16,7 @@ export function AudioGrid({ tracks, isLoading = false, emptyMessage = "No audio 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div key={index} className="bg-card rounded-lg shadow-md overflow-hidden">
             <Skeleton className="w-full h-48" />
             <div className="p-4">
               <Skeleton className="h-6 w-3/4 mb-2" />
@@ -40,7 +40,7 @@ export function AudioGrid({ tracks, isLoading = false, emptyMessage = "No audio 
   // Empty state
   if (tracks.length === 0) {
     return (
-      <div className="flex justify-center items-center py-12 px-4 border border-dashed rounded-lg border-neutral-300 bg-neutral-50 text-neutral-500">
+      <div className="flex justify-center items-center py-12 px-4 border border-dashed rounded-lg border-border bg-accent/5 text-muted-foreground">
         {emptyMessage}
       </div>
     );
