@@ -26,6 +26,6 @@
   }
   
   .audio-player {
-    @apply bg-gradient-to-r from-primary/80 to-amber-500/70 text-white;
+    @apply bg-white shadow-md border border-primary/10 text-primary;
   }
 }
