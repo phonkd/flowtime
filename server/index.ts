@@ -1,6 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
+
+// Log environment variables for debugging
+console.log('Environment variables loaded:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('USE_DATABASE:', process.env.USE_DATABASE);
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set (not showing value)' : 'Not set');
 
 const app = express();
 app.use(express.json());
