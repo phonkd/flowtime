@@ -393,6 +393,20 @@ export class MemStorage implements IStorage {
     return updatedCategory;
   }
   
+  async updateCategory(id: number, categoryData: Partial<Category>): Promise<Category | undefined> {
+    const category = await this.getCategoryById(id);
+    if (!category) return undefined;
+    
+    const updatedCategory = { ...category, ...categoryData };
+    this.categories.set(id, updatedCategory);
+    return updatedCategory;
+  }
+  
+  async deleteCategory(id: number): Promise<boolean> {
+    if (!this.categories.has(id)) return false;
+    return this.categories.delete(id);
+  }
+  
   // Tag operations
   async getAllTags(): Promise<TagWithCount[]> {
     const tags = Array.from(this.tags.values());
@@ -424,6 +438,29 @@ export class MemStorage implements IStorage {
     const tag: Tag = { ...insertTag, id };
     this.tags.set(id, tag);
     return tag;
+  }
+  
+  async updateTag(id: number, tagData: Partial<Tag>): Promise<Tag | undefined> {
+    const tag = await this.getTagById(id);
+    if (!tag) return undefined;
+    
+    const updatedTag = { ...tag, ...tagData };
+    this.tags.set(id, updatedTag);
+    return updatedTag;
+  }
+  
+  async deleteTag(id: number): Promise<boolean> {
+    if (!this.tags.has(id)) return false;
+    
+    // Delete the tag itself
+    this.tags.delete(id);
+    
+    // Remove any audio track tag associations
+    Array.from(this.audioTrackTags.entries())
+      .filter(([_, att]) => att.tagId === id)
+      .forEach(([attId, _]) => this.audioTrackTags.delete(attId));
+    
+    return true;
   }
   
   // Audio track operations

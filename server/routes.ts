@@ -14,8 +14,40 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 
+// Helper function to ensure upload directories exist
+function createUploadDirectories() {
+  const publicDir = path.join(process.cwd(), "public");
+  const uploadsDir = path.join(publicDir, "uploads");
+  const audioDir = path.join(uploadsDir, "audio");
+  const imagesDir = path.join(uploadsDir, "images");
+  
+  // Create directories if they don't exist
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
+    console.log("Created public directory");
+  }
+  
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log("Created uploads directory");
+  }
+  
+  if (!fs.existsSync(audioDir)) {
+    fs.mkdirSync(audioDir, { recursive: true });
+    console.log("Created audio uploads directory");
+  }
+  
+  if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+    console.log("Created image uploads directory");
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Create necessary upload directories
+  createUploadDirectories();
   
   // Auth middleware for protected routes
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -475,6 +507,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Internal server error" });
     }
   });
+  
+  // Category image upload endpoint
+  app.post("/api/admin/categories/:id/image", requireAdmin, uploadImage.single('imageFile'), async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file uploaded" });
+      }
+      
+      // Get the category
+      const category = await storage.getCategoryById(id);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      // Create the URL path to the uploaded file
+      const imageUrl = `/uploads/images/${req.file.filename}`;
+      
+      // Update the category with the new image URL
+      const updatedCategory = await storage.updateCategory(id, { imageUrl });
+      
+      res.status(200).json(updatedCategory);
+    } catch (error) {
+      console.error("Error uploading category image:", error);
+      res.status(500).json({ message: "Failed to upload image" });
+    }
+  });
 
   app.post("/api/uploads/audio", uploadAudio.single('audioFile'), async (req: Request, res: Response) => {
     // Authentication is optional for demo purposes
@@ -642,6 +705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Category Management API
   app.post("/api/admin/categories", requireAdmin, async (req: Request, res: Response) => {
     try {
+      // If imageUrl is not provided, it will default to null
       const category = await storage.createCategory(req.body);
       res.status(201).json(category);
     } catch (error) {
