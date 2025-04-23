@@ -8,7 +8,8 @@ services:
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      # Keep init-db.sh as a fallback until the auto-initialization is fully tested
+      # - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     environment:
       POSTGRES_USER: hypnosis
       POSTGRES_PASSWORD: hypnosis_password

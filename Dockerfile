@@ -17,7 +17,7 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p uploads && chmod 777 uploads
 
-# Make init-db.sh executable
+# Keep init-db.sh executable as a fallback option
 RUN chmod +x ./init-db.sh
 
 # Build frontend and backend assets (if needed)

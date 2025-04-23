@@ -32,6 +32,20 @@ A web platform for browsing, categorizing, and playing hypnosis audio recordings
 - npm or yarn
 - PostgreSQL database (optional - in-memory storage is used by default)
 
+### Database Setup
+
+The application features automatic database initialization:
+
+1. **Development Mode**: Uses in-memory storage by default (no database required)
+2. **Docker/Production Mode**: Automatically creates schema and seeds initial data
+   - Tables are created on first run 
+   - Admin user and demo content are automatically added
+   - No manual migrations or SQL scripts required
+
+This is configured via environment variables:
+- `USE_DATABASE=false` - Uses in-memory storage (default in development)
+- `USE_DATABASE=true` - Uses PostgreSQL (required for Docker/production)
+
 ### Installation
 
 #### Standard Installation
@@ -85,11 +99,7 @@ For manual production deployment:
    npm run build
    ```
 
-2. Set up the database:
-   ```bash
-   # Push schema to the database
-   npx drizzle-kit push
-   ```
+2. The database schema is automatically set up on application startup. No manual migration needed!
 
 3. Start the application:
    ```bash

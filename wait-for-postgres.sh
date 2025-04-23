@@ -3,6 +3,14 @@ set -e
 
 # More robust database connection check script for Docker environments
 # This explicitly uses TCP/IP connection to avoid socket connection issues
+#
+# DATABASE INITIALIZATION:
+# The application now initializes the database automatically via server/db.ts
+# on startup, creating all necessary tables and seeding initial data.
+# 
+# FALLBACK MECHANISM:
+# The init-db.sh script is still available as a fallback option and can be 
+# enabled by uncommenting the volume mount in docker-compose.yml if needed.
 
 # Connection parameters (use environment variables or defaults)
 PG_HOST=${POSTGRES_HOST:-postgres}

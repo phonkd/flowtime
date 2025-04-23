@@ -215,9 +215,10 @@ export async function initializeDatabase(): Promise<void> {
     }
     
     // Now check if we need to seed data
-    const userCount = await db.select({ count: db.fn.count() }).from(schema.users);
+    const userCountResult = await db.execute(db.select().from(schema.users).count());
+    const userCount = userCountResult[0]?.count || 0;
     
-    if (userCount.length > 0 && parseInt(userCount[0].count as string, 10) > 0) {
+    if (parseInt(userCount as string, 10) > 0) {
       console.log('Database already contains users, skipping data seeding.');
       return;
     }
@@ -330,12 +331,14 @@ export async function initializeDatabase(): Promise<void> {
     
     // 6. Update category counts
     for (const category of categories) {
-      const count = await db.select({ count: db.fn.count() })
-        .from(schema.audioTracks)
-        .where(eq(schema.audioTracks.categoryId, category.id));
+      const countResult = await db.execute(db.select().from(schema.audioTracks)
+        .where(eq(schema.audioTracks.categoryId, category.id))
+        .count());
+      
+      const trackCount = parseInt(countResult[0]?.count as string || '0', 10);
       
       await db.update(schema.categories)
-        .set({ count: parseInt(count[0].count as string, 10) })
+        .set({ count: trackCount })
         .where(eq(schema.categories.id, category.id));
     }
     
