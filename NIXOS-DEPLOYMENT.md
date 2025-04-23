@@ -6,11 +6,12 @@ This document explains how to deploy the Hypnosis Audio Platform using Nix and N
 
 1. [Prerequisites](#prerequisites)
 2. [Deployment Options](#deployment-options)
-3. [Using Nix Flakes](#using-nix-flakes)
-4. [Traditional NixOS Deployment](#traditional-nixos-deployment)
-5. [Development Environment](#development-environment)
-6. [Customization Options](#customization-options)
-7. [Troubleshooting](#troubleshooting)
+3. [No-Clone Deployment](#no-clone-deployment)
+4. [Using Nix Flakes](#using-nix-flakes)
+5. [Traditional NixOS Deployment](#traditional-nixos-deployment)
+6. [Development Environment](#development-environment)
+7. [Customization Options](#customization-options)
+8. [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
 
@@ -22,9 +23,72 @@ This document explains how to deploy the Hypnosis Audio Platform using Nix and N
 
 There are several ways to deploy the Hypnosis Audio Platform with Nix:
 
-1. **Using Nix Flakes (recommended)**: Modern, reproducible deployments
-2. **Traditional NixOS modules**: Compatible with older Nix versions
-3. **Development shell**: For local development
+1. **No-Clone Deployment**: Deploy directly from GitHub without cloning the repository
+2. **Using Nix Flakes (recommended)**: Modern, reproducible deployments
+3. **Traditional NixOS modules**: Compatible with older Nix versions
+4. **Development shell**: For local development
+
+## No-Clone Deployment
+
+You can deploy the Hypnosis Audio Platform without cloning the repository using these methods:
+
+### Direct Installation with `nix run`
+
+```bash
+# Run the application directly (temporary)
+nix run github:yourusername/hypnosis-audio-platform
+```
+
+### NixOS Module from URL
+
+Add this to your NixOS configuration:
+
+```nix
+{ config, pkgs, lib, ... }:
+
+let
+  # Fetch the module directly from GitHub
+  hypnosisModule = import (pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/yourusername/hypnosis-audio-platform/main/nixos-module.nix";
+    sha256 = "sha256-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; # Replace with actual hash
+  });
+in
+{
+  imports = [
+    hypnosisModule
+  ];
+  
+  services.hypnosisAudioPlatform.enable = true;
+  # Add other configuration options as needed
+}
+```
+
+### Flakes Without Cloning
+
+Create a `flake.nix` in your configuration directory:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    hypnosis-platform.url = "github:yourusername/hypnosis-audio-platform";
+  };
+  
+  outputs = { self, nixpkgs, hypnosis-platform, ... }: {
+    # Your configuration here
+    nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+        hypnosis-platform.nixosModules.default
+        { services.hypnosisAudioPlatform.enable = true; }
+      ];
+    };
+  };
+}
+```
+
+For more detailed no-clone deployment options, see [one-line-deploy.md](./one-line-deploy.md).
 
 ## Using Nix Flakes
 
