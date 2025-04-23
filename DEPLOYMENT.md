@@ -1,91 +1,153 @@
-# Deployment Guide for Hypnosis App
+# Hypnosis Audio Platform Deployment Guide
 
-This document provides instructions for deploying the Hypnosis application using GitHub Container Registry (GHCR) and Docker Compose.
+This document explains how to deploy the Hypnosis Audio Platform using different methods.
 
-## GitHub Actions Setup
+## Table of Contents
 
-The repository contains two GitHub Actions workflows:
-
-1. `docker-publish.yml` - Builds and pushes the application Docker image to GHCR
-2. `docker-compose-publish.yml` - Builds and pushes both the application and database images to GHCR, and generates a production docker-compose file
+1. [Prerequisites](#prerequisites)
+2. [Local Development](#local-development)
+3. [Docker Compose Development](#docker-compose-development)
+4. [Manual Production Deployment](#manual-production-deployment)
+5. [GitHub Actions Automated Deployment](#github-actions-automated-deployment)
+6. [Environment Variables](#environment-variables)
+7. [Database Setup](#database-setup)
+8. [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
 
-- GitHub repository with the Hypnosis application code
-- Permission to create GitHub Actions and Packages in the repository
+- Node.js 18 or higher
+- npm or yarn
+- Docker and Docker Compose (for containerized deployment)
+- PostgreSQL (for database persistence)
+- Git (for GitHub Actions deployment)
 
-## Automatic Deployment via GitHub Actions
+## Local Development
 
-The application is automatically built and published to GitHub Container Registry when:
+For local development without Docker:
 
-- You push to the `main` branch
-- You create and push a tag following semantic versioning (e.g., `v1.0.0`)
+```bash
+# Install dependencies
+npm install
 
-### Setting up GitHub Actions Secrets
+# Start the development server
+npm run dev
+```
 
-1. Go to your GitHub repository
-2. Navigate to Settings > Secrets and variables > Actions
-3. Add the following secret:
-   - `SESSION_SECRET` - A strong random string for session encryption
+The application will be available at http://localhost:5000.
 
-## Manual Deployment
+## Docker Compose Development
 
-To deploy manually using the published Docker images:
+### Option 1: Build from source (recommended for development)
 
-1. Download the `docker-compose.prod.yml` file from the latest GitHub Actions run artifacts
-2. Create a `.env` file with the following content:
-   ```
-   SESSION_SECRET=your_secure_session_secret_here
-   ```
-3. Run the application with:
-   ```bash
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
+```bash
+# Start the application and PostgreSQL database
+docker-compose up -d
 
-## Accessing the Application
+# View logs
+docker-compose logs -f
+```
 
-Once deployed, the application will be available at:
+### Option 2: Use pre-built container images
 
-- Application: `http://localhost:5000`
-- Database: `postgres://hypnosis:hypnosis_password@localhost:5432/hypnosis_db`
+This method doesn't build the application locally but uses the node:18-alpine image and mounts the code:
 
-## Default Admin Credentials
+```bash
+# Start the application using the independent docker-compose file
+docker-compose -f docker-compose-independent.yml up -d
 
-The database comes pre-populated with an admin user:
+# View logs
+docker-compose -f docker-compose-independent.yml logs -f
+```
 
-- Username: `admin`
-- Password: `admin123`
+## Manual Production Deployment
 
-**Important:** Change the admin password after first login in a production environment.
+For a manual production deployment:
 
-## Database Persistence
+```bash
+# Build the application
+npm run check
+npm run build
 
-The PostgreSQL database data is stored in a Docker volume named `postgres_data`. This ensures your data persists across container restarts.
+# Start the application in production mode
+NODE_ENV=production npm start
+```
 
-## Custom Deployment Configuration
+## GitHub Actions Automated Deployment
 
-If you need to customize the deployment, you can modify the `docker-compose.prod.yml` file. Common customizations include:
+The repository includes GitHub Actions workflows that automatically build and push Docker images to GitHub Container Registry (GHCR):
 
-- Changing port mappings
-- Adding SSL/TLS termination
-- Connecting to external services
+### How It Works
+
+1. When you push to the `main` branch or create a release tag, GitHub Actions will:
+   - Build the application Docker image
+   - Build the database Docker image with sample data
+   - Push both images to GitHub Container Registry
+   - Generate a deployment-ready `docker-compose.prod.yml` file
+
+2. To deploy using the pre-built images from GHCR:
+
+```bash
+# Log in to GitHub Container Registry (if needed)
+echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
+
+# Download the docker-compose.prod.yml from the latest GitHub Actions run artifacts
+# Create a .env file with your environment variables
+
+# Start the application
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Customizing the GitHub Actions Workflow
+
+The GitHub Actions workflows are defined in `.github/workflows/`:
+
+- `docker-publish.yml`: Builds and publishes a single application Docker image
+- `docker-compose-publish.yml`: Builds and publishes both application and database Docker images
+
+You can customize these workflows by editing these files.
+
+## Environment Variables
+
+The application requires the following environment variables:
+
+- `NODE_ENV`: Environment (`development` or `production`)
+- `USE_DATABASE`: Set to `true` to use a PostgreSQL database, `false` for in-memory storage
+- `DATABASE_URL`: PostgreSQL connection string when `USE_DATABASE=true`
+- `SESSION_SECRET`: Secret for session encryption
+
+For local development, you can create a `.env` file based on `.env.example`.
+
+## Database Setup
+
+The application supports both in-memory storage and PostgreSQL persistence:
+
+### Using In-Memory Storage
+
+Set `USE_DATABASE=false` in your environment variables.
+
+### Using PostgreSQL
+
+1. Set `USE_DATABASE=true` and provide a valid `DATABASE_URL`
+2. Run database migrations: `npm run db:push`
+
+### Initial Data
+
+When using Docker Compose, the database is automatically populated with sample data using the `init-db.sh` script.
 
 ## Troubleshooting
 
-If you encounter issues:
+### Connection Issues
 
-1. Check the container logs:
-   ```bash
-   docker-compose -f docker-compose.prod.yml logs app
-   docker-compose -f docker-compose.prod.yml logs postgres
-   ```
+If the application fails to connect to the database with an error about port 443, make sure your `DATABASE_URL` is in the proper format. For local PostgreSQL or Docker Compose deployment, use:
 
-2. Verify the database connection:
-   ```bash
-   docker-compose -f docker-compose.prod.yml exec postgres psql -U hypnosis -d hypnosis_db -c "SELECT count(*) FROM users;"
-   ```
+```
+postgresql://username:password@hostname:5432/database_name
+```
 
-3. Restart the services:
-   ```bash
-   docker-compose -f docker-compose.prod.yml restart
-   ```
+### Container Errors
+
+If containers fail to start:
+
+1. Check logs: `docker-compose logs app` or `docker-compose logs postgres`
+2. Verify environment variables in your `.env` file
+3. Ensure PostgreSQL is properly initialized: `docker-compose exec postgres psql -U hypnosis -c "SELECT count(*) FROM users;"`
