@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["nix", "docker", "nodejs-slim_18"]
+packages = ["docker", "nix", "nodejs-slim_18"]
 
 [deployment]
 deploymentTarget = "autoscale"
