@@ -30,6 +30,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         "id" SERIAL PRIMARY KEY,
         "name" TEXT NOT NULL UNIQUE,
         "description" TEXT,
+        "image_url" TEXT,
         "count" INTEGER NOT NULL DEFAULT 0
     );
 
@@ -44,7 +45,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         "title" TEXT NOT NULL,
         "description" TEXT NOT NULL,
         "category_id" INTEGER NOT NULL REFERENCES "categories"("id"),
-        "image_url" TEXT NOT NULL,
+        "image_url" TEXT,
         "audio_url" TEXT NOT NULL,
         "duration" INTEGER NOT NULL,
         "is_public" BOOLEAN NOT NULL DEFAULT true

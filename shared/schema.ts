@@ -27,12 +27,14 @@ export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   description: text("description").notNull(),
+  imageUrl: text("image_url"),
   count: integer("count").notNull().default(0),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({
   name: true,
   description: true,
+  imageUrl: true,
 });
 
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
@@ -55,7 +57,7 @@ export const audioTracks = pgTable("audio_tracks", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   categoryId: integer("category_id").notNull(),
-  imageUrl: text("image_url").notNull(),
+  imageUrl: text("image_url"), // Optional, will use category image as fallback
   audioUrl: text("audio_url").notNull(),
   duration: integer("duration").notNull(), // duration in seconds
   isPublic: boolean("is_public").default(true).notNull(),
