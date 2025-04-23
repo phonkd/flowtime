@@ -521,6 +521,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Admin password reset endpoint
+  app.post("/api/admin/users/:id/reset-password", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const { newPassword } = req.body;
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters long" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const updatedUser = await storage.resetUserPassword(userId, newPassword);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to reset password" });
+      }
+      
+      // Return success without the password
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.status(200).json({ 
+        ...userWithoutPassword,
+        message: "Password reset successful" 
+      });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   app.put("/api/admin/users/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);

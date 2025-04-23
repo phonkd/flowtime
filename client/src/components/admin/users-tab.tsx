@@ -47,6 +47,8 @@ import {
   ShieldCheck,
   User as UserIcon,
   UserPlus,
+  KeyRound,
+  Lock,
 } from "lucide-react";
 import {
   Dialog,
@@ -65,6 +67,17 @@ const userEditSchema = z.object({
 });
 
 type UserEditFormValues = z.infer<typeof userEditSchema>;
+
+// Schema for password reset form
+const passwordResetSchema = z.object({
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+type PasswordResetFormValues = z.infer<typeof passwordResetSchema>;
 
 // Schema for user creation form
 const userCreateSchema = z.object({

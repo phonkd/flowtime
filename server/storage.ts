@@ -744,6 +744,20 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.insert(users).values(userData).returning();
     return user;
   }
+  
+  async resetUserPassword(userId: number, newPassword: string): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({ password: newPassword })
+        .where(eq(users.id, userId))
+        .returning();
+      return user;
+    } catch (error) {
+      console.error("Error resetting user password:", error);
+      return undefined;
+    }
+  }
 
   // Category operations
   async getAllCategories(): Promise<CategoryWithCount[]> {
