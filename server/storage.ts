@@ -554,6 +554,164 @@ export class DatabaseStorage implements IStorage {
       tableName: 'session',
       createTableIfMissing: true 
     });
+    
+    // Initialize database with sample data if empty
+    this.initializeDatabase();
+  }
+  
+  private async initializeDatabase() {
+    try {
+      // Check if we already have users
+      const existingUsers = await db.select().from(users);
+      
+      if (existingUsers.length === 0) {
+        console.log("Initializing database with sample data...");
+        await this.createSampleData();
+      } else {
+        console.log(`Database already has ${existingUsers.length} users, skipping initialization.`);
+      }
+    } catch (error) {
+      console.error("Error during database initialization:", error);
+    }
+  }
+  
+  private async createSampleData() {
+    try {
+      // Create admin user
+      const adminUser = await this.createUser({
+        username: "admin",
+        password: "admin123",
+        role: "admin",
+        fullName: "Admin User",
+        email: "admin@example.com",
+      });
+      console.log("Created admin user:", adminUser.username);
+
+      // Create categories
+      const relaxation = await this.createCategory({
+        name: "Relaxation",
+        description: "Peaceful guided meditations with calming sounds",
+      });
+      console.log("Created relaxation category:", relaxation.name);
+
+      const confidence = await this.createCategory({
+        name: "Confidence",
+        description: "Build lasting confidence and self-esteem",
+      });
+      console.log("Created confidence category:", confidence.name);
+
+      const sleep = await this.createCategory({
+        name: "Sleep",
+        description: "Fall asleep faster with gentle voice guidance",
+      });
+      console.log("Created sleep category:", sleep.name);
+
+      const stress = await this.createCategory({
+        name: "Stress Relief",
+        description: "Release stress and find inner calm",
+      });
+      console.log("Created stress category:", stress.name);
+
+      // Create tags
+      const guidedTag = await this.createTag({ name: "Guided" });
+      const deepTranceTag = await this.createTag({ name: "Deep trance" });
+      const beginnerTag = await this.createTag({ name: "Beginner" });
+      const backgroundMusicTag = await this.createTag({ name: "Background music" });
+      const motivationTag = await this.createTag({ name: "Motivation" });
+      const anxietyTag = await this.createTag({ name: "Anxiety" });
+      const natureSoundsTag = await this.createTag({ name: "Nature Sounds" });
+      const longSessionTag = await this.createTag({ name: "Long Session" });
+
+      // Create audio tracks
+      const track1 = await this.createAudioTrack({
+        title: "Deep Relaxation Journey",
+        description: "Peaceful guided meditation with ocean sounds",
+        categoryId: relaxation.id,
+        imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+        audioUrl: "/audio/relaxation_journey.mp3",
+        duration: 1215, // 20:15
+        isPublic: true
+      });
+
+      const track2 = await this.createAudioTrack({
+        title: "Peaceful Sleep Induction",
+        description: "Fall asleep faster with gentle voice guidance",
+        categoryId: sleep.id,
+        imageUrl: "https://images.unsplash.com/photo-1518112166137-85f9979a43aa?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+        audioUrl: "/audio/sleep_induction.mp3",
+        duration: 1965, // 32:45
+        isPublic: true
+      });
+
+      const track3 = await this.createAudioTrack({
+        title: "Self-Confidence Boost",
+        description: "Build lasting confidence and self-esteem",
+        categoryId: confidence.id,
+        imageUrl: "https://images.unsplash.com/photo-1534859108275-a3a6f23619fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+        audioUrl: "/audio/confidence_boost.mp3",
+        duration: 930, // 15:30
+        isPublic: true
+      });
+
+      const track4 = await this.createAudioTrack({
+        title: "Anxiety Reduction",
+        description: "Release stress and find inner calm",
+        categoryId: stress.id,
+        imageUrl: "https://images.unsplash.com/photo-1476611338391-6f395a0ebc7b?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+        audioUrl: "/audio/anxiety_reduction.mp3",
+        duration: 1100, // 18:20
+        isPublic: true
+      });
+
+      const track5 = await this.createAudioTrack({
+        title: "Rainy Day Relaxation",
+        description: "Gentle rain sounds with calming guidance",
+        categoryId: relaxation.id,
+        imageUrl: "https://images.unsplash.com/photo-1529693662653-9d480530a697?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+        audioUrl: "/audio/rainy_day.mp3",
+        duration: 1510, // 25:10
+        isPublic: true
+      });
+
+      const track6 = await this.createAudioTrack({
+        title: "Deep Sleep Journey",
+        description: "Extended sleep hypnosis for insomnia",
+        categoryId: sleep.id,
+        imageUrl: "https://images.unsplash.com/photo-1502139214982-d0ad755818d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+        audioUrl: "/audio/deep_sleep.mp3",
+        duration: 2700, // 45:00
+        isPublic: true
+      });
+
+      // Add tags to tracks
+      await this.addTagToAudioTrack(track1.id, guidedTag.id);
+      await this.addTagToAudioTrack(track1.id, relaxation.id);
+
+      await this.addTagToAudioTrack(track2.id, sleep.id);
+      await this.addTagToAudioTrack(track2.id, deepTranceTag.id);
+
+      await this.addTagToAudioTrack(track3.id, confidence.id);
+      await this.addTagToAudioTrack(track3.id, motivationTag.id);
+
+      await this.addTagToAudioTrack(track4.id, stress.id);
+      await this.addTagToAudioTrack(track4.id, anxietyTag.id);
+
+      await this.addTagToAudioTrack(track5.id, relaxation.id);
+      await this.addTagToAudioTrack(track5.id, natureSoundsTag.id);
+
+      await this.addTagToAudioTrack(track6.id, sleep.id);
+      await this.addTagToAudioTrack(track6.id, longSessionTag.id);
+
+      // Update category counts
+      await this.updateCategoryCount(relaxation.id, 2);
+      await this.updateCategoryCount(confidence.id, 1);
+      await this.updateCategoryCount(sleep.id, 2);
+      await this.updateCategoryCount(stress.id, 1);
+
+      console.log("Sample data initialization complete!");
+    } catch (error) {
+      console.error("Error creating sample data:", error);
+    }
   }
 
   // User operations
@@ -568,7 +726,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    // Add createdAt field to the insert data
+    const userData = {
+      ...insertUser,
+      createdAt: new Date()
+    };
+    
+    const [user] = await db.insert(users).values(userData).returning();
     return user;
   }
 
@@ -605,17 +769,17 @@ export class DatabaseStorage implements IStorage {
   // Tag operations
   async getAllTags(): Promise<TagWithCount[]> {
     const tagsResult = await db.select().from(tags);
-    // Calculate count for each tag
-    const counts = await db
-      .select({
-        tagId: audioTrackTags.tagId,
-        count: db.fn.count(audioTrackTags.id)
-      })
-      .from(audioTrackTags)
-      .groupBy(audioTrackTags.tagId);
+    
+    // Count tag occurrences manually using a raw query because drizzle-orm doesn't support aggregate functions directly
+    const countsQuery = `
+      SELECT "tag_id" as "tagId", COUNT(*) as "count"
+      FROM "audio_track_tags"
+      GROUP BY "tag_id"
+    `;
+    const counts = await db.execute(countsQuery);
     
     const countMap = new Map<number, number>();
-    counts.forEach(c => countMap.set(c.tagId, Number(c.count)));
+    counts.rows.forEach(c => countMap.set(Number(c.tagId), Number(c.count)));
     
     return tagsResult.map(tag => ({
       ...tag,
@@ -683,7 +847,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAudioTrack(insertTrack: InsertAudioTrack): Promise<AudioTrack> {
-    const [track] = await db.insert(audioTracks).values(insertTrack).returning();
+    // Add createdAt field to the insert data
+    const trackData = {
+      ...insertTrack,
+      createdAt: new Date()
+    };
+    
+    const [track] = await db.insert(audioTracks).values(trackData).returning();
     return track;
   }
 
