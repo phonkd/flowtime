@@ -1,5 +1,5 @@
-import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/pg-pool';
+import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from "@shared/schema";
 
 // Check if we're using the database (from environment variable)
@@ -18,8 +18,8 @@ if (USE_DATABASE && !process.env.DATABASE_URL) {
   );
 }
 
-// Create a dummy pool and DB if we're not using the real database
-let connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+// Create a dummy connection string if we're not using the real database
+const connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
 
 // Log connection info (without revealing credentials)
 if (USE_DATABASE) {
@@ -27,22 +27,22 @@ if (USE_DATABASE) {
   console.log(`Connecting to database: ${sanitizedURL}`);
 }
 
-// Standard PostgreSQL connection pool
-export const pool = new Pool({
-  connectionString,
-  // Add a longer timeout for initial connection
-  connectionTimeoutMillis: 10000,
-  // Increase the pool size
-  max: 20,
-  // Add a timeout for idle clients
-  idleTimeoutMillis: 30000,
+// Create the Postgres client
+const client = postgres(connectionString, {
+  max: 20,                // Maximum number of connections
+  idle_timeout: 30,       // Idle connection timeout in seconds
+  connect_timeout: 10,    // Connection timeout in seconds
+  prepare: false,         // Disable prepared statements for better compatibility
 });
 
 // Test the connection before proceeding
 if (USE_DATABASE) {
-  pool.query('SELECT NOW()')
+  client`SELECT NOW()`
     .then(() => console.log('Database connection successful'))
     .catch(err => console.error('Database connection error:', err));
 }
 
-export const db = drizzle(pool, { schema });
+// Create the Drizzle ORM instance
+export const db = drizzle(client, { schema });
+export const sql = client; // Export the SQL client for raw queries
+export const pool = client; // Export pool for backward compatibility
