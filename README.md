@@ -146,6 +146,33 @@ The application comes with a default admin account:
 
 Use these credentials to access the admin dashboard at `/admin`.
 
+## Deployment Options
+
+This project provides multiple deployment methods:
+
+1. **Docker Compose**: Deploy using Docker containers with or without building locally
+2. **GitHub Actions**: Automated CI/CD with Docker images published to GHCR
+3. **NixOS / Nix**: Deploy on NixOS systems using Nix Flakes or traditional modules
+4. **Manual Deployment**: Build and run directly on the host system
+
+For detailed deployment instructions, see:
+- [Docker & CI/CD Deployment](./DEPLOYMENT.md)
+- [NixOS Deployment](./nix/README.md)
+
+## NixOS Deployment
+
+For NixOS users, this project includes comprehensive deployment options:
+
+```bash
+# Run directly without installing
+nix run github:yourusername/hypnosis-audio-platform
+
+# Deploy as a NixOS service via flakes
+# See ./nix/flake/README.md for details
+```
+
+For other NixOS deployment methods, see the documentation in the `./nix` directory.
+
 ## Project Structure
 
 ```
@@ -168,6 +195,10 @@ Use these credentials to access the admin dashboard at `/admin`.
 ├── shared/               # Shared code between client and server
 │   └── schema.ts         # Database schema and types
 ├── public/               # Static assets
+├── nix/                  # NixOS deployment configurations
+│   ├── module/           # Traditional NixOS modules
+│   ├── flake/            # Nix Flake configurations
+│   └── oneshot/          # One-shot deployment options
 ├── Dockerfile            # Application container configuration
 ├── Dockerfile.db         # Database container with sample data
 ├── docker-compose.yml    # Local development Docker setup
