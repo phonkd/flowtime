@@ -78,9 +78,6 @@ export function Header({ onSearch }: HeaderProps) {
                   alt="Flowtime" 
                   className="h-10 mr-2" 
                 />
-                <span className="bg-gradient-to-r from-primary to-amber-500 bg-clip-text text-transparent font-bold">
-                  Flowtime
-                </span>
               </a>
             </Link>
           </div>

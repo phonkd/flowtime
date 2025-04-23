@@ -22,10 +22,10 @@
   }
   
   .hero-section {
-    @apply bg-gradient-to-r from-primary/10 to-amber-500/10;
+    @apply bg-gradient-to-r from-primary/5 to-amber-500/5;
   }
   
   .audio-player {
-    @apply bg-gradient-to-r from-primary/90 to-amber-500/90 text-white;
+    @apply bg-gradient-to-r from-primary/80 to-amber-500/70 text-white;
   }
 }
